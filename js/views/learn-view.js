@@ -70,11 +70,14 @@
     return i > 0 ? { ch, l: ch.lessons[i - 1] } : { ch, l: introOf(ch) };
   }
 
-  const SOURCE = { teacher: 'Hocanın sorusu', lab: 'Deney föyü', lesson: 'Ders sorusu' };
+  const SOURCE = { teacher: 'Hocanın sorusu', lab: 'Deney föyü', lesson: 'Ders sorusu', link: 'Bağlantı sorusu' };
   const sourceBadge = (kind, label) => `<span class="src-badge src-${kind}">${label || SOURCE[kind]}</span>`;
+  const bridgeOf = (ch) => (MC.bridges || {})[ch.id];
+  const linkItems = (ch) => ((bridgeOf(ch) || {}).questions || []).map((x, n) => ({ id: `${ch.id}/bag#${n}`, kind: 'link', ch, q: x.q, a: x.a }));
 
   function reviewPool(ch) {
-    const pool = [];
+    // Bağlantı soruları sonraki bölümlerin karışık tekrarına da girer (aralıklı + karışık tekrar)
+    const pool = linkItems(ch);
     questions().filter((q) => q.lesson.split('/')[0] === ch.id)
       .forEach((q) => pool.push({ id: `tq:${q.id}`, kind: q.kind || 'teacher', ch, q: q.q, a: q.a, set: q.set }));
     ch.lessons.forEach((l) => (l.checks || []).forEach((c, n) => pool.push({ id: `${lessonKey(ch, l)}#${n}`, kind: 'lesson', ch, l, q: c.q, a: c.a })));
@@ -95,10 +98,12 @@
   function buildReview(ch) {
     const rnd = seeded(`${ch.id}|${today()}`);
     const pool = reviewPool(ch);
-    const own = shuffle([...pick(pool.filter((x) => x.kind !== 'lesson'), 9, rnd), ...pick(pool.filter((x) => x.kind === 'lesson'), 6, rnd)], rnd);
+    // Önce bu bölümü öncekilerle birleştiren sorular, sonra bölümün kendi soruları (karışık)
+    const own = [...linkItems(ch), ...shuffle([...pick(pool.filter((x) => x.kind === 'teacher' || x.kind === 'lab'), 9, rnd), ...pick(pool.filter((x) => x.kind === 'lesson'), 6, rnd)], rnd)];
     const before = chapters().slice(0, chapters().indexOf(ch));
     const prev = shuffle(pick(before.flatMap((c) => pick(reviewPool(c), 4, rnd)), 10, rnd), rnd);
     const cards = [{ kind: 'open', own: own.length, prev: prev.length, before }];
+    if (bridgeOf(ch)) cards.push({ kind: 'synth' });
     own.forEach((item) => cards.push({ kind: 'rq', item }));
     if (prev.length) cards.push({ kind: 'rqsep', before, n: prev.length });
     prev.forEach((item) => cards.push({ kind: 'rq', item }));
@@ -212,6 +217,9 @@
       });
       closeUnit();
       markTeacherCards(ch, l, cards);
+      // Teoriden hemen sonra serbest hatırlama, ardından kendini yokla soruları
+      const rc = (MC.recall || {})[lessonKey(ch, l)];
+      if (rc) cards.push({ kind: 'recall', r: rc });
       (l.checks || []).forEach((c, i) => cards.push({ kind: 'check', check: c, n: i }));
       cards.push({ kind: 'end' });
     }
@@ -316,6 +324,15 @@
   }
 
   /* ------------------------------------------------------------ kart akışı */
+  // Bölüm girişindeki ön düzenleyici: hangi eski bilgiyi kullanacaksın, üstüne ne eklenecek
+  function bridgeIntro(ch) {
+    const b = bridgeOf(ch);
+    if (!b) return '';
+    const uses = b.intro.uses.map(([cid, t, lid]) => { const c = findChapter(cid); return `<li><a class="pill b2" href="#/b/${cid}/${lid}">B${c.num}</a><span>${t}</span></li>`; }).join('');
+    return `<div class="br-intro">${uses ? `<h4 class="ci-h">Önce hatırla: bu bölümde kullanacağın eski bilgiler</h4><ul class="br-links">${uses}</ul><p class="hint">Her birini 5 saniye düşün: ne olduğunu hatırlıyor musun? Hatırlamıyorsan etikete tıklayıp o derse dön.</p>` : ''}
+      <h4 class="ci-h">Bu bölüm üstüne ne koyuyor?</h4><p class="br-builds">${b.intro.builds}</p></div>`;
+  }
+
   function renderCard(card, i, ctx) {
     const { ch, l, key, idx, cards, next } = ctx;
     let inner;
@@ -328,13 +345,30 @@
           <ol class="ci-topics">${o.topics.map(([t, id]) => { const le = ch.lessons.find((x) => x.id === id); return `<li>${le ? `<a href="${lessonHref(ch, le)}">${t}</a><small>Ders ${num(id)}</small>` : t}</li>`; }).join('')}</ol></section>
           <section><h4 class="ci-h">Öğrenilecek kavramlar</h4><div class="ci-chips">${o.concepts.map((c) => `<span>${c}</span>`).join('')}</div>
           ${o.why ? `<p class="hint" style="margin-top:14px">${o.why}</p>` : ''}</section></div>
+        ${bridgeIntro(ch)}
         <div class="btn-row"><a class="btn btn-primary fx-next" href="${lessonHref(ch, ch.lessons[0])}">Başla: ${ch.lessons[0].title} ▶</a></div>`;
     } else if (l.review && card.kind === 'open') {
       const range = card.before.length > 1 ? `Bölüm 1–${card.before.length}` : 'Bölüm 1';
       inner = `<span class="tag">Bölüm ${ch.num} · Tekrar</span><h2 class="fx-title">${l.title}</h2>
         <p class="fx-sub">${card.own} soru bu bölümden${card.prev ? ` · ardından ${card.prev} soru ${range}'den karışık` : ''}</p>
-        <div class="fx-pre"><span class="l-note-label">Nasıl çalışır?</span><p class="rv-legend">${sourceBadge('teacher')} ${sourceBadge('lab')} ${sourceBadge('lesson')}</p>
+        <div class="fx-pre"><span class="l-note-label">Nasıl çalışır?</span><p class="rv-legend">${sourceBadge('link')} ${sourceBadge('teacher')} ${sourceBadge('lab')} ${sourceBadge('lesson')}</p>
         <small>Her sorunun üstünde nereden geldiği yazar. Önce cevabı kendin düşün, sonra aç ve "Bildim / Bilemedim" de. Bilemediklerin sonraki tekrarlarda önce gelir.</small></div>`;
+    } else if (card.kind === 'synth') {
+      const b = bridgeOf(ch);
+      const nc = chapters()[chapters().indexOf(ch) + 1];
+      inner = `<span class="tag">Bölüm ${ch.num} · Sentez</span><h2 class="fx-title">Bu bölüm neyle birleşiyor?</h2>
+        ${b.links.length ? `<p class="fx-sub">Soruya geçmeden önce her bağı okuyup kendine "bunu neden böyle?" diye sor. Bilgiyi eski bilgiye bağlamak onu hatırlamayı kolaylaştırır.</p>
+        <ul class="br-links">${b.links.map(([cid, t]) => { const c = findChapter(cid); return `<li><a class="pill b2" href="#/b/${cid}">B${c.num}</a><span>${t}</span></li>`; }).join('')}</ul>` : '<p class="fx-sub">Bu ilk bölüm: henüz bağlanacak önceki bölüm yok. Aşağıdaki köprü sonraki bölüme bakıyor.</p>'}
+        <div class="br-next"><span class="l-note-label">${nc ? `Sıradaki: Bölüm ${nc.num} · ${nc.title}` : 'Sırada'}</span><p>${b.next}</p></div>
+        ${b.questions && b.questions.length ? `<p class="hint">Sıradaki ${b.questions.length} soru <b>birden çok bölümü birleştiriyor</b>. Cevabı bulmak için hangi bölümün hangi bilgisini kullandığını fark et.</p>` : ''}`;
+    } else if (card.kind === 'recall') {
+      const id = `r:${key}`;
+      inner = `<div class="rq-head"><span class="tag">Serbest hatırlama</span><span class="src-badge src-lesson">Ekrana bakmadan</span></div>
+        <div class="rc" data-rc="${id}"><p class="fx-check-q">${card.r.q}</p>
+          <textarea class="qx-draft rc-draft" rows="5" placeholder="Hatırladığın her şeyi yaz. Eksik olsa da yaz: zorlanarak hatırlamak öğrenmenin kendisi.">${esc(Store.data.drafts[id] || '')}</textarea>
+          <div class="btn-row"><button class="btn btn-primary" type="button" data-act="recall">Anahtar noktalarla karşılaştır</button></div>
+          <div class="rc-keys" hidden><b>Hangilerini yazdın?</b>${card.r.points.map((p, i) => `<label class="qx-key"><input type="checkbox" data-rck="${i}"><span>${p}</span></label>`).join('')}<div class="qx-score"></div>
+          <p class="hint">Eksik kalan noktayı yukarı kaydırıp ilgili kartta tekrar oku, sonra burada yeniden yazmayı dene.</p></div></div>`;
     } else if (card.kind === 'rqsep') {
       inner = `<span class="tag">Karışık tekrar</span><h2 class="fx-title">Önceki bölümler</h2><p class="fx-sub">Şimdi ${card.before.map((c) => `Bölüm ${c.num}`).join(', ')} içinden karışık ${card.n} soru geliyor.</p>`;
     } else if (card.kind === 'rq') {
@@ -351,6 +385,7 @@
       const bad = items.filter((id) => Store.data.checks[id] === 'bad').length;
       inner = `<div class="fx-end"><span class="fx-end-mark" aria-hidden="true">✓</span><h2 class="fx-title">${l.title} tamam</h2>
         <p class="fx-sub">${ok} bildim · ${bad} bilemedim · ${items.length - ok - bad} işaretlenmedi</p>
+        ${bridgeOf(ch) ? `<p class="hint" style="max-width:620px">${bridgeOf(ch).next}</p>` : ''}
         ${next ? `<a class="btn btn-primary fx-next" href="${lessonHref(next.ch, next.l)}">Bölüm ${next.ch.num}: ${next.ch.title} ▶</a>` : '<a class="btn btn-primary fx-next" href="#/sorular">Hocanın soruları ▶</a>'}
         <div class="btn-row"><a class="btn btn-sm" href="#/b/${ch.id}">Bölüm ${ch.num} dersleri</a></div></div>`;
     } else if (card.kind === 'open') {
@@ -573,6 +608,7 @@
         box.querySelectorAll('.l-ok, .l-bad').forEach((b) => b.classList.toggle('chosen', b === a));
         return;
       }
+      if (act === 'recall') { a.closest('.btn-row').hidden = true; a.closest('.rc').querySelector('.rc-keys').hidden = false; return; }
       if (act === 'qreveal') { const card = a.closest('.qx'); card.querySelector('.qx-answer').hidden = false; a.hidden = true; return; }
       if (act === 'nextq') { Q.lastShown = Q.current; Q.current = null; render(['sorular']); return; }
     }
@@ -594,6 +630,16 @@
     }
   }
   function onChange(e) {
+    const rk = e.target.closest('[data-rck]');
+    if (rk) {
+      const box = rk.closest('.rc');
+      const all = [...box.querySelectorAll('[data-rck]')];
+      const n = all.filter((b) => b.checked).length;
+      Store.data.checks[box.dataset.rc] = n === all.length ? 'ok' : 'bad';
+      Store.save();
+      box.querySelector('.qx-score').textContent = `${n} / ${all.length} nokta. ${n === all.length ? 'Tamamını hatırladın.' : n >= all.length / 2 ? 'İyi; eksikleri bir daha yazmayı dene.' : 'Kartlara dönüp bir kez daha oku, sonra yeniden yaz.'}`;
+      return;
+    }
     const k = e.target.closest('[data-key]');
     if (k) {
       const card = k.closest('.qx');
@@ -603,6 +649,7 @@
     }
   }
   function onInput(e) {
+    if (e.target.classList.contains('rc-draft')) { Store.data.drafts[e.target.closest('.rc').dataset.rc] = e.target.value; Store.save(); return; }
     if (e.target.classList.contains('qx-draft')) { Store.data.drafts[e.target.closest('.qx').dataset.q] = e.target.value; Store.save(); }
   }
 
