@@ -186,8 +186,18 @@
   });
 
   /* ------------------------------------------------------------ run: hocanın uygulamaları için LED simülatörü */
-  const SPEEDS = [['slow', 'Satır satır (yavaş)', 380, 1], ['1', 'Gerçek zaman', 0, 1], ['4', '4× hızlı', 0, 4]];
+  // [anahtar, ad, satır başına bekleme (ms), zaman çarpanı]. Ağır çekim yalnızca multiplexing uygulamalarında görünür.
+  const SPEEDS = [['slow', 'Satır satır (yavaş)', 380, 1], ['1', 'Gerçek zaman', 0, 1], ['4', '4× hızlı', 0, 4], ['slowmo', 'Ağır çekim (1 ms = 0,3 s)', 0, 1 / 300]];
   const portOf = (pin) => ({ port: pin[1], bit: +pin[2] });
+  // 7 segment paneli: app.seg = { kind: 'direct' | 'bcd' | 'bcd2' | 'mux', ca }
+  const SEG_N = { direct: 1, bcd: 1, bcd2: 2, mux: 4 };
+  const SEG_LABEL = {
+    direct: (s) => `7 segment · doğrudan, ortak ${s.ca ? 'anot' : 'katot'} (a = RB7 … g = RB1, dp = RB0)`,
+    bcd: () => '7 segment · BCD sürücü (RB3…RB0 → 7448 → a–g)',
+    bcd2: () => '7 segment · 2 sürücü: onlar RB7…RB4, birler RB3…RB0',
+    mux: () => '4 haneli gösterge · veri RB3…RB0 (sürücü), hane seçimi RC7…RC4 (0 = seçili)'
+  };
+  const POV_MS = 20; // göz, son ~20 ms içinde yanmış haneyi hâlâ yanık görür
 
   MC.dg.add('run', {
     title: 'Simülatör: kodu satır satır çalıştır',
@@ -207,6 +217,7 @@
             <select data-o="speed">${SPEEDS.map(([k, t]) => `<option value="${k}"${k === '1' ? ' selected' : ''}>${t}</option>`).join('')}</select>
           </div>
           <label class="hint" data-o="ncw" hidden><input type="checkbox" data-o="nc"> Föy adım 9: <code>INTCON.INTF=0;</code> satırını sil</label>
+          <label class="hint" data-o="povw" hidden><input type="checkbox" data-o="pov" checked> Göz yanılması: son ${POV_MS} ms içinde yanan haneler de yanık görünsün</label>
         </div></div>
         <div class="dg-info run-msg" data-o="msg"></div>`;
     },
@@ -232,7 +243,34 @@
         $o(el, 'title').textContent = app.title;
         $o(el, 'src').textContent = app.src || '';
         $o(el, 'ncw').hidden = !app.isr;
+        $o(el, 'povw').hidden = !(app.seg && app.seg.kind === 'mux');
+        const sel = $o(el, 'speed');
+        const slowOpt = sel.querySelector('option[value="slowmo"]');
+        slowOpt.hidden = !app.slowmo;
+        slowOpt.disabled = !app.slowmo;
+        sel.value = app.slowmo ? 'slowmo' : sel.value === 'slowmo' ? '1' : sel.value;
         reset();
+      };
+      let segLit = [];
+      const segDraw = () => {
+        const s = app.seg;
+        if (!s) return;
+        const cells = el.querySelectorAll('[data-sd]');
+        const pov = $o(el, 'pov').checked;
+        const out = [];
+        if (s.kind === 'direct') out.push([MC.seg.fromPort(io.PORTB, s.ca), 'on']);
+        if (s.kind === 'bcd') out.push([MC.seg.bcd(io.PORTB & 15), 'on']);
+        if (s.kind === 'bcd2') out.push([MC.seg.bcd(io.PORTB >> 4), 'on'], [MC.seg.bcd(io.PORTB & 15), 'on']);
+        if (s.kind === 'mux') {
+          for (let d = 0; d < 4; d++) {
+            const pin = 7 - d; // RC7 en soldaki hane (binler), RC4 en sağdaki (birler)
+            const active = !((io.TRISC >> pin) & 1) && !((io.PORTC >> pin) & 1);
+            if (active) segLit[d] = { m: MC.seg.bcd(io.PORTB & 15), t: simMs };
+            const l = segLit[d];
+            out.push(active ? [segLit[d].m, 'on'] : l && pov && simMs - l.t <= POV_MS ? [l.m, 'dim'] : [0, 'off']);
+          }
+        }
+        cells.forEach((c, d) => { c.innerHTML = MC.seg.svg(out[d][0], { state: out[d][1] }); c.classList.toggle('sel', s.kind === 'mux' && out[d][1] === 'on'); });
       };
       const reset = () => {
         stop();
@@ -245,7 +283,9 @@
         simMs = 0;
         line = 0;
         $o(el, 'code').innerHTML = codeLines().map((l) => `<span class="ln">${esc(l) || ' '}</span>`).join('');
-        $o(el, 'leds').innerHTML = (app.ports || ['B']).map((pt) => `<small>PORT${pt}</small>${MC.ledRow('R' + pt)}`).join('<div style="height:8px"></div>');
+        segLit = [];
+        const segHtml = app.seg ? `<small>${SEG_LABEL[app.seg.kind](app.seg)}</small><div class="seg-row">${Array.from({ length: SEG_N[app.seg.kind] }, (_, d) => `<div class="seg-cell" data-sd="${d}"></div>`).join('')}</div><div style="height:10px"></div>` : '';
+        $o(el, 'leds').innerHTML = segHtml + (app.ports || ['B']).map((pt) => `<small>PORT${pt}</small>${MC.ledRow('R' + pt)}`).join('<div style="height:8px"></div>');
         $o(el, 'ins').hidden = !(app.inputs && app.inputs.length);
         $o(el, 'insb').innerHTML = (app.inputs || []).map((pin) => `<button class="push" type="button" data-pin="${pin}">${pin}: bırakıldı</button>`).join('');
         draw('▶ Çalıştır ile programı başlat ya da <b>Adım</b> ile hata ayıklayıcıdaki gibi satır satır ilerle.');
@@ -265,9 +305,10 @@
             c.querySelector('small').innerHTML = `R${pt}${bit}${isIn ? '<span class="pin-in"> G</span>' : ''}`;
           });
         });
+        segDraw();
         const regs = (app.ports || ['B']).map((pt) => `<span>TRIS${pt} = <b>${MC.hex(io['TRIS' + pt])}</b></span><span>PORT${pt} = <b>${MC.hex(io['PORT' + pt])}</b> <span class="muted">${MC.bin(io['PORT' + pt])}</span></span>`);
-        if (app.vars) regs.push(`<span>${app.vars(io)}</span>`);
-        if (app.regs) regs.push(`<span>${app.regs(io)}</span>`);
+        if (app.vars) regs.push(`<span>${app.vars(io).replace(/undefined/g, "?")}</span>`);
+        if (app.regs) regs.push(`<span>${app.regs(io).replace(/undefined/g, "?")}</span>`);
         regs.push(`<span>Süre: <b>${(simMs / 1000).toFixed(1)} s</b></span>`);
         if (inIsr) regs.push('<span class="dg-warn">Yığın: [dönüş adresi → while döngüsü]</span>');
         $o(el, 'regs').innerHTML = regs.join('');
@@ -339,9 +380,11 @@
         }
       });
       $o(el, 'nc').addEventListener('change', () => { if (app.isr) reset(); });
+      $o(el, 'pov').addEventListener('change', () => draw());
       // Kart görünümden çıkınca simülasyonu durdur (arka planda boşuna çalışmasın)
       if ('IntersectionObserver' in window) new IntersectionObserver((en) => { if (!en[0].isIntersecting) stop(); }).observe(el);
-      load((p.apps || [p.app])[0]);
+      const list = p.apps || [p.app];
+      load(p.start && list.includes(p.start) ? p.start : list[0]);
     }
   });
 

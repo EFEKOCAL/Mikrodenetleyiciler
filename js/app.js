@@ -22,6 +22,8 @@
       ${item('#/plan', '≡', 'Genel bakış', 'Yöntem, haftalar, değerlendirme')}
       ${MC.lessons.chapters.map((ch) => { const p = prog.chapters.find((x) => x.id === ch.id); return item(`#/b/${ch.id}`, `B${ch.num}`, ch.title, ch.navSub, `<span class="nav-pct${p.pct === 100 ? ' done' : ''}">${p.read}/${p.total}</span>`); }).join('')}
       <div class="nav-label">Tekrar ve pratik</div>
+      ${item('#/vize', '★', 'Vize kampı', 'Kod yazma, IEEE 754, D/Y, timer')}
+      ${item('#/kod', '✎', 'Kod yazma soruları', `${(MC.teacherQuestions || []).filter((q) => q.kind === 'code').length} soru · kâğıtta çöz`)}
       ${item('#/sorular', '?', 'Hocanın soruları', `${(MC.teacherQuestions || []).length} soru · aralıklı tekrar`)}
       ${item('#/lab', '⚙', 'Laboratuvar araçları', 'Simülatör, hesaplayıcı, alıştırma')}
       <p class="hint" style="margin:18px 8px 0">Kısayollar: <kbd>↓</kbd> <kbd>↑</kbd> <kbd>Boşluk</kbd> kartlar arasında geçer. İlerlemen yalnızca bu tarayıcıda saklanır.</p>`;
@@ -31,6 +33,7 @@
     closeMenu();
     const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
     if (parts[0] === 'lab') MC.lab.render(view, parts);
+    else if (parts[0] === 'vize') MC.exam.render(view, parts);
     else MC.learn.render(parts);
   }
 

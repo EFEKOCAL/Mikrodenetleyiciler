@@ -25,9 +25,19 @@ Her ders aynı öğrenme döngüsünü izler:
 | 5 · G/Ç uygulamaları | Hafta 4–5 · Uygulama 4–14 · Deney 3 | LED desenleri, buton okuma |
 | 6 · Kesmeler | Hafta 3, slayt 18–26 · Deney 4 | Kesme adımları, INTCON, RB0 harici kesme |
 | 7 · Zamanlayıcılar | Hafta 6 · Uygulama 15–18 · Deney 5 | Prescaler, TMR0 hesabı, kare dalga, Timer1 |
-| 8 · ADC | Hafta 7 · Uygulama 19–20 | Nyquist, çözünürlük, ADCON0/1, TAD |
+| 8 · 7 segment | Hafta 7 · Uygulama 21–26 | Ortak katot/anot, sinyalleşme, BCD sürücü, 0–99 sayıcı, multiplexing |
+| 9 · ADC | ADC sunumu (önce "hafta 7" adıyla paylaşıldı) · Uygulama 19–20 | Nyquist, çözünürlük, ADCON0/1, TAD. Derste henüz işlenmedi; vize kapsamı belirsiz |
 
-**Simülatörler:** hocanın GitHub'daki uygulamaları (Uygulama 4–14, Deney 3 ve 4 kodları) LED simülatöründe satır satır çalışır; Deney 4'te kesmeye girme ve `INTF` silinmezse ne olduğu da görülür. Ayrıca kaydedici bit düzenleyici, RAM haritası, ALU bayrakları, bellek yerleşimi (absolute çakışmaları), Timer0 içi, TMR hesaplayıcı, ADC hesaplayıcı ve örnekleme şekli var. Hepsi **Laboratuvar araçları** sayfasında da toplu duruyor.
+## Vize kampı
+
+`#/vize` sayfası, sınavda çıkacağı söylenen soru tiplerine göre hedefli çalışma sunar (kaynak: öğrenci notları ve geçen yılın sınavı, resmi bilgi değil):
+
+- **Kod yazma** (`#/kod`): hocanın uygulamalarının ve föy kodlarının varyantı 13 soru. Kâğıtta sıfırdan yaz, çözümü aç, puanlama listesini işaretle; çözümlerin çoğu simülatörde çalışır. Sorular aralıklı tekrara ve bölüm tekrarlarına girer.
+- **Hocanın 26 uygulaması**: aileler hâlinde, ortak iskelet ve değişen satırlar.
+- **Hesap alıştırmaları**: IEEE 754 (iki yön), tip boyutu, absolute çakışması, kaydırma, koddan timer hesabı, 7 segment kodu ve basamak ayırma.
+- **Doğru / yanlış**: 50 ifadelik banka, açıklamalı.
+
+**Simülatörler:** hocanın GitHub'daki uygulamaları (Uygulama 4–14, 21–26, Deney 3 ve 4 kodları) ve kod yazma sorularının çözümleri LED simülatöründe satır satır çalışır. 7 segment uygulamalarında gösterge de çizilir; 4 haneli multiplexing ağır çekimde ve "göz yanılması" açık/kapalı izlenebilir; Deney 4'te kesmeye girme ve `INTF` silinmezse ne olduğu da görülür. Ayrıca kaydedici bit düzenleyici, RAM haritası, ALU bayrakları, bellek yerleşimi (absolute çakışmaları), Timer0 içi, TMR hesaplayıcı, ADC hesaplayıcı ve örnekleme şekli var. Hepsi **Laboratuvar araçları** sayfasında da toplu duruyor.
 
 Slaytlarda veya föylerde hata/eksik olan yerler "Slayttan farklı / dikkat" kutusunda doğrusuyla verilir. Veri sayfasından eklenen bilgiler "Ek bilgi" olarak işaretlidir.
 
@@ -43,18 +53,22 @@ style.css                  koyu tema
 js/
   core.js                  ad alanı, sayı biçimleri, şekil kaydı (MC.dg), adımlayıcı
   app.js                   yönlendirme ve menü
-  data/ch1…ch8-*.js        dersler (bölüm başına bir dosya)
+  data/ch1…ch9-*.js        dersler (bölüm başına bir dosya)
   data/apps.js             hocanın uygulamaları: satır satır çalışan üreteçler + bellek örnekleri
+  data/apps-more.js        7 segment uygulamaları (21–26) ve kod yazma çözümleri (k1…k13)
   data/teacher-questions.js  hocanın ve föylerin soruları, model cevaplar, anahtar noktalar
+  data/exam.js             kod yazma soruları, doğru/yanlış bankası, uygulama aileleri
+  data/recall.js           serbest hatırlama kartları ve bölüm köprüleri
   views/learn-view.js      kart akışı, bölüm tekrarı, soru sayfası, aralıklı tekrar
   views/lab-view.js        laboratuvar araçları sayfası
+  views/exam-view.js       vize kampı sayfası
   views/registers.js       PIC16F877A kaydedici bit tanımları + bit düzenleyici
-  views/diagrams*.js       etkileşimli şekiller
+  views/diagrams*.js       etkileşimli şekiller (diagrams-seg.js: 7 segment, doğru/yanlış)
 ```
 
 ### Yeni soru eklemek
 
-`js/data/teacher-questions.js` dosyasının sonuna dosyanın başındaki şablonla bir nesne ekle.
+`js/data/teacher-questions.js` dosyasının sonuna dosyanın başındaki şablonla bir nesne ekle. Kod yazma sorusu için `js/data/exam.js` içindeki `C(...)` kalıbını kullan (`kind: 'code'`); çözüm simülatörde çalışacaksa `apps-more.js`'e aynı kimlikle bir uygulama ekle.
 
 ### Ders blokları
 

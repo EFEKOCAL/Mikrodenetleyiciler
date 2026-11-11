@@ -70,7 +70,7 @@
     return i > 0 ? { ch, l: ch.lessons[i - 1] } : { ch, l: introOf(ch) };
   }
 
-  const SOURCE = { teacher: 'Hocanın sorusu', lab: 'Deney föyü', lesson: 'Ders sorusu', link: 'Bağlantı sorusu' };
+  const SOURCE = { teacher: 'Hocanın sorusu', lab: 'Deney föyü', lesson: 'Ders sorusu', link: 'Bağlantı sorusu', code: 'Kod yazma' };
   const sourceBadge = (kind, label) => `<span class="src-badge src-${kind}">${label || SOURCE[kind]}</span>`;
   const bridgeOf = (ch) => (MC.bridges || {})[ch.id];
   const linkItems = (ch) => ((bridgeOf(ch) || {}).questions || []).map((x, n) => ({ id: `${ch.id}/bag#${n}`, kind: 'link', ch, q: x.q, a: x.a }));
@@ -99,7 +99,7 @@
     const rnd = seeded(`${ch.id}|${today()}`);
     const pool = reviewPool(ch);
     // Önce bu bölümü öncekilerle birleştiren sorular, sonra bölümün kendi soruları (karışık)
-    const own = [...linkItems(ch), ...shuffle([...pick(pool.filter((x) => x.kind === 'teacher' || x.kind === 'lab'), 9, rnd), ...pick(pool.filter((x) => x.kind === 'lesson'), 6, rnd)], rnd)];
+    const own = [...linkItems(ch), ...shuffle([...pick(pool.filter((x) => x.kind === 'teacher' || x.kind === 'lab'), 9, rnd), ...pick(pool.filter((x) => x.kind === 'code'), 2, rnd), ...pick(pool.filter((x) => x.kind === 'lesson'), 6, rnd)], rnd)];
     const before = chapters().slice(0, chapters().indexOf(ch));
     const prev = shuffle(pick(before.flatMap((c) => pick(reviewPool(c), 4, rnd)), 10, rnd), rnd);
     const cards = [{ kind: 'open', own: own.length, prev: prev.length, before }];
@@ -156,7 +156,7 @@
 
   // Hocanın sorularının değindiği kartlara uyarı kutusu: "focus" ifadesi kart metninde geçiyorsa
   function markTeacherCards(ch, l, cards) {
-    const qs = questionsFor(lessonKey(ch, l));
+    const qs = questionsFor(lessonKey(ch, l)).filter((q) => q.kind !== 'code');
     if (!qs.length) return;
     const content = cards.filter((c) => c.blocks);
     const text = (c) => `${c.h || ''} ${JSON.stringify(c.blocks)}`.replace(/<[^>]+>/g, ' ');
@@ -264,7 +264,7 @@
         <h2>Mikrodenetleyiciler</h2><p class="fx-start-sub">PIC16F877A · mikroC · konu konu, simülasyonlu</p>
         ${action}
         ${started ? '' : '<ol class="fx-how"><li><b>Oku ve dene</b><span>kısa kartlar, simülasyon</span></li><li><b>Ekrana bakmadan hatırla</b><span>her dersin sonunda</span></li><li><b>Tekrar et</b><span>bölüm sonu + hocanın soruları</span></li></ol>'}
-        <div class="fx-start-links">${dueCount() ? `<a class="btn btn-sm due" href="#/sorular">⟳ Bugün tekrar: ${dueCount()} soru</a>` : '<a class="btn btn-sm" href="#/sorular">Hocanın soruları</a>'}<a class="btn btn-sm" href="#/lab/alistirma">Hesap alıştırması</a><a class="btn btn-sm" href="#/lab">Simülatörler</a><a class="btn btn-sm btn-ghost" href="#/plan">Tüm bölümler</a></div>
+        <div class="fx-start-links"><a class="btn btn-sm btn-primary" href="#/vize">★ Vize kampı</a>${dueCount() ? `<a class="btn btn-sm due" href="#/sorular">⟳ Bugün tekrar: ${dueCount()} soru</a>` : '<a class="btn btn-sm" href="#/sorular">Hocanın soruları</a>'}<a class="btn btn-sm" href="#/lab/alistirma">Hesap alıştırması</a><a class="btn btn-sm" href="#/lab">Simülatörler</a><a class="btn btn-sm btn-ghost" href="#/plan">Tüm bölümler</a></div>
       </section></div>`;
   }
 
@@ -286,7 +286,8 @@
       ['4–5', 'Giriş/çıkış işlemleri: TRIS/PORT, LED ve buton uygulamaları', 'ch5', 'Deney 3'],
       ['3 (devam)', 'Kesmeler, INTCON, harici kesme', 'ch6', 'Deney 4'],
       ['6', 'Zamanlayıcılar: Timer0/1/2, ön ölçekleme, gecikme hesabı', 'ch7', 'Deney 5'],
-      ['7', 'Analog-sayısal çevrim (ADC)', 'ch8', '—']
+      ['7', '7 segment display: ortak anot/katot, sürücü, multiplexing (Uygulama 21–26)', 'ch8', '—'],
+      ['?', 'Analog-sayısal çevrim (ADC): sunum önce "hafta 7" adıyla paylaşıldı, derste henüz işlenmedi', 'ch9', '—']
     ];
     return `<div class="page">${pageTop('<b>Genel bakış</b>')}<div class="page-inner">
       <section class="card l-chhead"><span class="tag">BLM3007 · Mikrodenetleyiciler · PIC16F877A</span><h2>Genel bakış</h2>
@@ -527,7 +528,8 @@
   }
 
   /* ------------------------------------------------------------ hocanın soruları */
-  const Q = { mode: 'card', filter: 'all', ch: 'all', current: null, lastShown: null };
+  const Q = { mode: 'card', filter: 'all', ch: 'all', kind: 'all', current: null, lastShown: null };
+  const KINDS = [['all', 'Tüm türler'], ['teacher', 'Hocanın'], ['lab', 'Föy'], ['code', 'Kod yazma']];
 
   function qCard(q, n) {
     const st = qState(q.id);
@@ -538,11 +540,11 @@
       <header class="qx-head"><span class="q-num">S${n}</span>${sourceBadge(q.kind || 'teacher')}<span class="q-topic">${esc(q.set)}</span>
         ${l ? `<a class="qx-lesson" href="${lessonHref(ch, l)}">Bölüm ${ch.num} · ${l.title}</a>` : ''}<span class="pill ${BOX[st.box].cls}">${BOX[st.box].label}</span></header>
       <p class="qx-q">${q.q}</p>
-      <label class="qx-draft-l" for="d-${q.id}">Önce kendi cevabını yaz (isteğe bağlı, bu tarayıcıda saklanır)</label>
-      <textarea class="qx-draft" id="d-${q.id}" rows="3" placeholder="Cevabını buraya yaz…">${esc(Store.data.drafts[q.id] || '')}</textarea>
-      <div class="btn-row"><button class="btn btn-primary btn-sm" type="button" data-act="qreveal">Model cevabı göster</button>${q.try ? `<a class="btn btn-sm btn-ghost" href="${q.try}">▶ Sitede dene</a>` : ''}</div>
+      <label class="qx-draft-l" for="d-${q.id}">${q.kind === 'code' ? 'Kodu kâğıda ya da buraya sıfırdan yaz, sonra çözümle karşılaştır (bu tarayıcıda saklanır)' : 'Önce kendi cevabını yaz (isteğe bağlı, bu tarayıcıda saklanır)'}</label>
+      <textarea class="qx-draft${q.kind === 'code' ? ' code' : ''}" id="d-${q.id}" rows="${q.kind === 'code' ? 12 : 3}" spellcheck="false" placeholder="${q.kind === 'code' ? 'void main() { … }' : 'Cevabını buraya yaz…'}">${esc(Store.data.drafts[q.id] || '')}</textarea>
+      <div class="btn-row"><button class="btn btn-primary btn-sm" type="button" data-act="qreveal">${q.kind === 'code' ? 'Çözümü göster' : 'Model cevabı göster'}</button>${q.try ? `<a class="btn btn-sm btn-ghost" href="${q.try}">▶ ${q.kind === 'code' ? 'Çözümü simülatörde çalıştır' : 'Sitede dene'}</a>` : ''}</div>
       <div class="qx-answer" hidden><div class="qx-model">${q.a}</div>
-        <div class="qx-keys"><b>Cevabında bu anahtar noktalar var mıydı?</b>${q.keys.map((k, i) => `<label class="qx-key"><input type="checkbox" data-key="${i}"><span>${k}</span></label>`).join('')}<div class="qx-score"></div></div>
+        <div class="qx-keys"><b>${q.kind === 'code' ? 'Kodunda bunlar var mıydı? (puanlama listesi)' : 'Cevabında bu anahtar noktalar var mıydı?'}</b>${q.keys.map((k, i) => `<label class="qx-key"><input type="checkbox" data-key="${i}"><span>${k}</span></label>`).join('')}<div class="qx-score"></div></div>
         <div class="qx-rate"><span>Kendini değerlendir:</span><button class="btn btn-sm l-bad" type="button" data-rate="bad">✗ Bilemedim</button><button class="btn btn-sm" type="button" data-rate="partial">~ Kısmen</button><button class="btn btn-sm l-ok" type="button" data-rate="good">✓ Bildim</button></div>
         <div class="qx-msg"></div></div>
     </article>`;
@@ -559,7 +561,7 @@
   }
   function pageQuestions() {
     const all = questions();
-    const qs = all.filter((q) => Q.ch === 'all' || q.lesson.split('/')[0] === Q.ch);
+    const qs = all.filter((q) => (Q.ch === 'all' || q.lesson.split('/')[0] === Q.ch) && (Q.kind === 'all' || (q.kind || 'teacher') === Q.kind));
     const c = qStats(qs);
     const filters = [['all', 'Tümü'], ['1', 'Tekrar et'], ['0', 'Yeni'], ['2', 'Gelişiyor'], ['3', 'Öğrenildi']];
     let body;
@@ -574,10 +576,11 @@
     }
     return `<div class="page">${pageTop('<b>Hocanın soruları</b>')}<div class="page-inner">
       <section class="card l-chhead"><span class="tag">Sınavda çıkabilir · ${all.length} soru</span><h2>Hocanın ve föylerin soruları</h2>
-        <p>Slaytlardaki "Konu özeti / Sorular", örnek sorular, "Problemi bulun" soruları ve deney föylerinin soru ve ön çalışma bölümleri. Önce <b>kendi cevabını yaz</b>, sonra model cevabı aç ve <b>anahtar noktaları</b> işaretle. "(Ek)" işaretli bilgiler slaytta yok, veri sayfasından eklendi.</p>
+        <p>Slaytlardaki "Konu özeti / Sorular", örnek sorular, "Problemi bulun" soruları, deney föylerinin soru ve ön çalışma bölümleri ve hocanın uygulamalarının varyantı olan <b>kod yazma</b> soruları. Önce <b>kendi cevabını yaz</b>, sonra model cevabı aç ve <b>anahtar noktaları</b> işaretle. "(Ek)" işaretli bilgiler slaytta yok, veri sayfasından eklendi.</p>
         <div class="qx-stats">${BOX.map((bx) => `<div class="mini-stat ${bx.cls}"><span>${bx.label}</span><b>${c[bx.id]}</b></div>`).join('')}</div>
         <div class="l-bar l-bar-stack">${BOX.slice(1).reverse().map((bx) => `<i class="${bx.cls}" style="width:${qs.length ? (c[bx.id] / qs.length) * 100 : 0}%"></i>`).join('')}</div>
-        <div class="tabs" style="margin-top:12px"><button class="tab${Q.ch === 'all' ? ' active' : ''}" type="button" data-qch="all">Tüm bölümler</button>${chapters().map((ch) => `<button class="tab${Q.ch === ch.id ? ' active' : ''}" type="button" data-qch="${ch.id}">B${ch.num} · ${ch.short || ch.title}</button>`).join('')}</div>
+        <div class="tabs" style="margin-top:12px">${KINDS.map(([k, t]) => `<button class="tab${Q.kind === k ? ' active' : ''}" type="button" data-qkind="${k}">${t} (${k === 'all' ? all.length : all.filter((q) => (q.kind || 'teacher') === k).length})</button>`).join('')}</div>
+        <div class="tabs" style="margin-top:8px"><button class="tab${Q.ch === 'all' ? ' active' : ''}" type="button" data-qch="all">Tüm bölümler</button>${chapters().map((ch) => `<button class="tab${Q.ch === ch.id ? ' active' : ''}" type="button" data-qch="${ch.id}">B${ch.num} · ${ch.short || ch.title}</button>`).join('')}</div>
         <div class="btn-row"><button class="btn btn-sm${Q.mode === 'card' ? ' on' : ''}" type="button" data-mode="card">⟳ Tek tek çalış (önerilen)</button><button class="btn btn-sm${Q.mode === 'list' ? ' on' : ''}" type="button" data-mode="list">≡ Tüm liste</button></div>
       </section><div class="qx-body">${body}</div></div></div>`;
   }
@@ -627,6 +630,8 @@
     if (f) { Q.filter = f.dataset.filter; render(['sorular']); return; }
     const m = e.target.closest('[data-mode]');
     if (m) { Q.mode = m.dataset.mode; render(['sorular']); return; }
+    const qk = e.target.closest('[data-qkind]');
+    if (qk) { Q.kind = qk.dataset.qkind; Q.current = null; render(['sorular']); return; }
     const qc = e.target.closest('[data-qch]');
     if (qc) { Q.ch = qc.dataset.qch; Q.current = null; render(['sorular']); return; }
     const r = e.target.closest('[data-rate]');
@@ -672,8 +677,9 @@
     let after = null;
     if (!p0) html = pageHome();
     else if (p0 === 'plan') html = pageOverview();
+    else if (p0 === 'kod') { Q.kind = 'code'; Q.ch = 'all'; Q.mode = 'card'; Q.current = p1 || null; html = pageQuestions(); }
     else if (p0 === 'sorular') {
-      if (p1) { Q.mode = 'list'; Q.filter = 'all'; Q.ch = 'all'; }
+      if (p1) { Q.mode = 'list'; Q.filter = 'all'; Q.ch = 'all'; Q.kind = 'all'; }
       html = pageQuestions();
       if (p1) after = () => { const el = root.querySelector(`#q-${CSS.escape(p1)}`); if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash-card'); } };
     } else if (p0 === 'b') {

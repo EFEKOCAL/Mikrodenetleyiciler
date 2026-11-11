@@ -599,10 +599,17 @@ void main() {
       steps: [[3, 'jjjj', 0x11223344], [4, 'i', 0xff]]
     },
     u3: {
-      title: 'Uygulama 3: float x = 0.0625',
+      title: 'Uygulama 3 (11 Kasım güncellemesi): float x = -4.75',
       from: 0x20, to: 0x23,
       vars: [['x', 'float', 0x20]],
-      code: ['float x;   // adresi derleyici seçer (burada 0x20 varsayıldı)', '', 'void main() {', '', 'x=0.0625;', '}'],
+      code: ['float x;   // adresi derleyici seçer (burada 0x20 varsayıldı)', '', 'void main() {', '', 'x=-4.75;', '}'],
+      steps: [[4, 'x', -4.75]]
+    },
+    u3eski: {
+      title: 'Uygulama 3\'ün ilk hali: float x = 0.0625',
+      from: 0x20, to: 0x23,
+      vars: [['x', 'float', 0x20]],
+      code: ['float x;', '', 'void main() {', '', 'x=0.0625;', '}'],
       steps: [[4, 'x', 0.0625]]
     }
   };

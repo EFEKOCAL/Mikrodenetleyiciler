@@ -71,7 +71,8 @@
             ['4', '0000 1000', '0001 0000', '<b>0001 1000</b> (çaprazlandılar)'],
             ['5…7', '…', '…', 'ayna görüntüsü: 0010 0100, 0100 0010, 1000 0001']
           ] },
-          { t: 'note', kind: 'exam', html: 'Desen sorusunda yöntem: <b>1)</b> her adımı 8 bitlik satır olarak yaz, <b>2)</b> satırları hex/ondalık sayıya çevir, <b>3)</b> sayılar arasındaki ilişkiyi bul (×2, ×2+1, &lt;&lt;, &gt;&gt;, ^, sabit dizi). İlişki yoksa diziyi <code>char desen[] = {…};</code> olarak yaz ve döngüyle sırayla PORTB\'ye ver.' }
+          { t: 'note', kind: 'exam', html: 'Desen sorusunda yöntem: <b>1)</b> her adımı 8 bitlik satır olarak yaz, <b>2)</b> satırları hex/ondalık sayıya çevir, <b>3)</b> sayılar arasındaki ilişkiyi bul (×2, ×2+1, &lt;&lt;, &gt;&gt;, ^, sabit dizi). İlişki yoksa diziyi <code>char desen[] = {…};</code> olarak yaz ve döngüyle sırayla PORTB\'ye ver.' },
+          { t: 'dg', id: 'quiz', types: ['shift'] }
         ],
         checks: [
           { q: 'Uygulama 10\'da yon değişkeni ne zaman 1, ne zaman 0 olur?', a: 'PORTB == 128 olunca (ışık RB7\'ye ulaşınca) yon = 1 (sağa kaydır). PORTB == 1 olunca (RB0\'a dönünce) yon = 0 (sola kaydır).' },

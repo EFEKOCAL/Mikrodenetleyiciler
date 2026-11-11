@@ -561,3 +561,47 @@ input[type="range"] { accent-color: var(--accent); }
   .fx-caption > span:first-child a { display: none; }
   .pg-top { padding: 8px 12px; }
 }
+
+/* ------------------------------------------------------------ 7 segment (diagrams-seg.js) */
+.seg7 { display: block; width: 100%; height: auto; }
+.seg7 .sg { fill: rgba(255, 59, 79, 0.08); stroke: rgba(255, 59, 79, 0.18); stroke-width: 0.6; transition: fill 0.06s; }
+.seg7 .sg.on { fill: var(--led); stroke: #ff8a96; filter: drop-shadow(0 0 3px var(--led-glow)); }
+.seg7.dim .sg.on { fill: #c92c3d; filter: none; }
+.seg7.click .sg { cursor: pointer; }
+.seg7.click .sg:hover { stroke: var(--warn); stroke-width: 1.2; }
+.seg7 .sg-l { font: 700 8px var(--mono); fill: var(--faint); text-anchor: middle; pointer-events: none; }
+.seg-wrap { display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.seg-big { display: grid; gap: 6px; justify-items: center; padding: 12px; border-radius: 12px; background: #0a0507; border: 1px solid var(--border); }
+.seg-big small { font: 600 11px var(--mono); color: var(--faint); text-align: center; }
+.seg-t td { padding: 4px 8px; }
+.seg-t tr.muted td { opacity: 0.45; }
+.seg-row { display: flex; gap: 8px; padding: 10px; border-radius: 10px; background: #0a0507; border: 1px solid var(--border); justify-content: center; }
+.seg-cell { width: 58px; padding: 4px; border-radius: 6px; border: 1px solid transparent; }
+.seg-cell.sel { border-color: rgba(251, 191, 36, 0.6); }
+.dy-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+
+/* ------------------------------------------------------------ kod yazma ve vize kampı */
+.src-code { color: #38bdf8; border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.1); }
+.qx-draft.code { font: 13px/1.55 var(--mono); tab-size: 2; white-space: pre; overflow-x: auto; }
+.qx-model pre, .l-solve-a pre, .quiz-res pre { overflow-x: auto; }
+.quiz-q .l-code { font-size: 13px; font-weight: 400; }
+.skel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.skel { padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel); }
+.skel b { display: block; margin-bottom: 4px; color: var(--accent); }
+.skel .l-code { margin: 6px 0 0; font-size: 12px; }
+.fam { margin-bottom: 12px; }
+.fam-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: 15px; }
+.fam-sd { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.fam-sd > div { padding: 8px 10px; border-radius: 9px; background: var(--bg-2); border: 1px solid var(--border); font-size: 13px; }
+.fam-sd small { display: block; font: 700 10.5px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+.fam-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fam-list li { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; font-size: 13.5px; }
+.ex-card small { line-height: 1.45; }
+@media (max-width: 720px) {
+  .seg-wrap, .fam-sd { grid-template-columns: 1fr; }
+  .seg-big { max-width: 170px; }
+  .seg-cell { width: 48px; }
+  .fam-list li { grid-template-columns: 1fr; gap: 0; }
+}
+/* Kodda >= , != , -> bitişik harfe dönüşmesin: öğrenci kâğıda aynen yazacak */
+pre, code, kbd, .l-code, .run-code, .cx-c, .qx-draft.code { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }

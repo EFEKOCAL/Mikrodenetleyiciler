@@ -119,7 +119,8 @@
           { t: 'h', text: 'Değişkenler RAM\'de nasıl durur? (Deney 1 örnek kodu)' },
           { t: 'p', html: 'Föydeki kodu adım adım çalıştır. <b>−250\'nin 1 baytlık signed short\'a ne yaptığına</b> dikkat et:' },
           { t: 'dg', id: 'mem', preset: 'deney1' },
-          { t: 'note', kind: 'extra', html: '<b>Bayt sırası (little endian):</b> Çok baytlı değişkenlerde <b>düşük anlamlı bayt düşük adrese</b> yazılır. int −250 = FF06h → 21h\'de <b>06</b>, 22h\'de <b>FF</b>. Hocanın .lst dosyalarında da görünür: <code>INCF _i</code> sonra taşma olursa <code>INCF _i+1</code>.' }
+          { t: 'note', kind: 'extra', html: '<b>Bayt sırası (little endian):</b> Çok baytlı değişkenlerde <b>düşük anlamlı bayt düşük adrese</b> yazılır. int −250 = FF06h → 21h\'de <b>06</b>, 22h\'de <b>FF</b>. Hocanın .lst dosyalarında da görünür: <code>INCF _i</code> sonra taşma olursa <code>INCF _i+1</code>.' },
+          { t: 'dg', id: 'quiz', types: ['size'] }
         ],
         checks: [
           { q: 'mikroC\'de int, short, long ve float kaç bayttır?', a: 'int 2 bayt, short 1 bayt, long 4 bayt, float 4 bayt (double da 4 bayt).' },
@@ -143,6 +144,8 @@
           { t: 'p', html: '<b>IEEE 754 standardı</b> kayan noktalı (float) sayıların bilgisayarda ikili olarak nasıl gösterileceğini tanımlar. 32 bit: <b>1 bit işaret, 8 bit üs (127 eklenmiş), 23 bit mantis</b>.' },
           { t: 'dg', id: 'float' },
           { t: 'solve', title: 'Ön çalışma 7', q: '1453 sayısı 40h adresine atanmış bir float değişkene atanınca hafızada nasıl görünür?', a: '<p>1453 = 101 1010 1101₂ = 1.01101011010₂ × 2<sup>10</sup>. İşaret 0; üs 10 + 127 = 137 = 1000 1001; mantis 0110 1011 0100 0…</p><p>32 bit: 0 10001001 01101011010000000000000 = <b>44B5A000h</b> (IEEE 754). Küçük adrese düşük bayt: 40h = 00, 41h = A0, 42h = B5, 43h = 44.</p><p><i>Not:</i> mikroC kılavuzu Microchip AN575 formatını kullandığını belirtir; AN575\'te üs baytı önce gelir (89h 35h A0h 00h). Laboratuvarda RAM penceresinde hangisini gördüğünü not et.</p>' },
+          { t: 'solve', title: 'Uygulama 3 (güncel): negatif sayı', q: '<code>float x = -4.75;</code> sayısının IEEE 754 (32 bit) gösterimini bulunuz.', a: '<ol><li>İşaret: negatif → <b>S = 1</b></li><li>4 = 100₂; 0.75 × 2 = 1.5 → 1, 0.5 × 2 = 1.0 → 1 → 0.11₂. 4.75 = <b>100.11₂</b></li><li>Normalize: <b>1.0011 × 2²</b></li><li>Üs: 2 + 127 = 129 = <b>1000 0001</b></li><li>Mantis: <b>0011</b> 0000 0000 0000 0000 000 (23 bit)</li><li>1 10000001 00110000000000000000000 → 1100 0000 1001 1000 0000 0000 0000 0000 = <b>C0980000h</b></li></ol><p>RAM\'de (little endian): 00 00 98 C0. Pozitif +4.75 olsaydı yalnızca ilk bit 0 olurdu: 40980000h.</p>' },
+          { t: 'dg', id: 'quiz', types: ['ieee', 'ieeer'] },
           { t: 'h', text: 'ASCII' },
           { t: 'table', head: ['Karakter', 'ASCII (hex)', 'ASCII (ondalık)'], rows: [['\'A\'', '41h', '65'], ['\'a\'', '61h', '97'], ['\'1\'', '31h', '49']] },
           { t: 'note', kind: 'extra', html: 'Küçük harf = büyük harf + 20h (5. bit). Rakam karakteri = sayı + 30h. Ön çalışma 9: EasyPIC v7\'de desteklenen grafik LCD <b>128 × 64</b> piksel çözünürlüklüdür.' },
@@ -206,7 +209,11 @@
           { t: 'note', kind: 'exam', html: 'Uygulama 2\'de iki ayrı ders var: (1) <b>783238988</b> int\'e (2 bayt) sığmaz: yalnızca alt 16 biti kalır = 474Ch = 18252. (2) <b>int y absolute 0x25</b> 0x25–0x26\'yı kaplar; <b>short t absolute 0x26</b> çakışır. t=1 yazılınca y\'nin üst baytı 01 olur: y = 014Ch = <b>332</b>.' },
           { t: 'h', text: 'Uygulama 1 ve 3' },
           { t: 'p', html: 'Uygulama 1 (<code>int sayi; sayi=10;</code>) adres vermez: adresi derleyici seçer, RAM penceresinde 2 bayt (0A 00) görünür. Uygulama 3 float\'ın baytlarını gösterir:' },
-          { t: 'dg', id: 'mem', preset: 'u3' }
+          { t: 'dg', id: 'mem', preset: 'u3' },
+          { t: 'note', kind: 'exam', html: 'Hoca <b>11 Kasım</b>\'da GitHub\'daki Uygulama 3\'ü <code>x=0.0625</code>\'ten <code>x=-4.75</code>\'e çevirdi: <b>negatif</b> bir sayının IEEE 754 gösterimi. −4.75 = C0980000h, RAM\'de 00 00 98 C0. Hesabın adımları "Sayı Sistemleri, IEEE 754" dersinde.' },
+          { t: 'h', text: 'Alıştırma: çakışmada son değer' },
+          { t: 'p', html: 'Sınavda "ardışık adreslere değişken koyduk, çıktı ne olur" diye sorulabilir. Kural: n baytlık değişken n ardışık adresi kaplar, <b>sonra yazılan ortak baytı ezer</b>, düşük bayt düşük adrestedir.' },
+          { t: 'dg', id: 'quiz', types: ['overlap'] }
         ],
         checks: [
           { q: 'absolute ve org direktiflerinin farkı nedir?', a: 'absolute bir değişkeni (veya sabit diziyi) belirli bir adrese yerleştirir (genelde RAM). org bir fonksiyonun program belleğinde (ROM) hangi adresten başlayacağını belirtir.' },

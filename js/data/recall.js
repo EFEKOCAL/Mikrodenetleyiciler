@@ -111,16 +111,28 @@
     'ch7/timer1': { q: 'Timer1\'in Timer0\'dan 3 farkını yaz. Timer1 kesmesi için Timer0\'dan farklı olarak hangi bit gerekir, neden?',
       points: ['16 bit (TMR1H/TMR1L)', 'Ön ölçek 1:1…1:8, Timer_max 65536', 'Harici giriş RC0/T1CKI, T1CON ile ayar', 'PEIE gerekir: Timer1 çevresel kesme (PIE1/PIR1)'] },
 
-    /* ---------------- Bölüm 8 */
-    'ch8/ornekleme': { q: 'Örnekleme ve nicemlemeyi tanımla. Nyquist şartını yaz ve şartı sağlamazsan ne olacağını açıkla. 15 kHz\'e kadar bileşen içeren bir sinyal için minimum f_s?',
+    /* ---------------- Bölüm 8 (7 segment) */
+    'ch8/yapi': { q: 'Ekrana bakmadan anlat: PORTB = 0b11011010 yazılınca ortak katotlu göstergede ne olur? Akımın yolunu (pin → LED → ?) söyle. Aynı rakam ortak anotta kaç olur, neden?',
+      points: ['Her bit kendi pinini 5 V / 0 V yapar', 'a = RB7 … g = RB1, dp = RB0', 'Ortak katot: 1 olan pinden LED\'e, katottan GND\'ye akım → yanar', '0xDA = a, b, d, e, g → "2"', 'Ortak anot: anotlar +5 V, 0 yakar → bit bit ters: 0x25'] },
+    'ch8/ornek': { q: '0–9\'u 1 sn aralıkla gösteren programı dizi ve for ile hafızadan yaz (ortak katot). Ortak anota çevirmek için hangi tek değişiklik yeter?',
+      points: ['char kod[10] = {0xFC,0x60,0xDA,0xF2,0x66,0xB6,0xBE,0xE0,0xFE,0xF6}', 'TRISB = 0', 'while(1){ for(i=0;i<10;i++){ PORTB = kod[i]; Delay_ms(1000); } }', 'Ortak anot: PORTB = ~kod[i]'] },
+    'ch8/surucu': { q: 'BCD → 7 segment sürücünün ne yaptığını ve avantajını yaz. Uygulama 24\'te butonu basılı tutunca ne olur, neden?',
+      points: ['4 bitlik BCD girişi (A–D) → a–g çıkışları', 'Bir hane 4 pin; PORTB = sayının kendisi', 'Kod tablosu gerekmez, ek entegre gerekir', 'Uyg. 24: Delay if içinde → basılı tutunca saniyede 1 artar', '10–15 BCD değil: 9\'dan sonra 0'] },
+    'ch8/sayac99': { q: 'seven_segment_goster() fonksiyonunu (Uygulama 25) hafızadan yaz. sayac = 38 için her satırın sonucunu yaz. ×16 neden var?',
+      points: ['onlar = sayac/10 → 3', 'birler = sayac%10 → 8', 'onlar*16 → 0x30 (<<4, üst sürücü)', 'veri = onlar ^ birler → 0x38', 'portb = veri', 'sayac signed: −1 → 99'] },
+    'ch8/mux': { q: 'Multiplexing\'i tanımla. 4 haneli göstergede bir turun adımlarını yaz. Neden göz dört haneyi de yanık görür? pd1 değişkeni ne işe yarar?',
+      points: ['Her haneyi tek port üzerinden sırayla kontrol', 'Hane seç (ortak katot: 0) → veri gönder → 1 ms bekle → sonraki', '4 ms tur = 250 Hz; göz ~20 ms\'den kısa sönmeyi görmez', 'Basamaklar: /1000, %1000/100, %100/10, %10', 'pd1: önceki basış durumu → basılı tutmak tek sayım'] },
+
+    /* ---------------- Bölüm 9 (ADC) */
+    'ch9/ornekleme': { q: 'Örnekleme ve nicemlemeyi tanımla. Nyquist şartını yaz ve şartı sağlamazsan ne olacağını açıkla. 15 kHz\'e kadar bileşen içeren bir sinyal için minimum f_s?',
       points: ['Örnekleme: belirli aralıklarla değer alma', 'Nicemleme: ölçekleyip bitlere atama', 'f_s ≥ 2·f_max', 'Aliasing: sahte düşük frekans', '30 kHz'] },
-    'ch8/cozunurluk': { q: 'Çözünürlük formülünü ve 1 bitlik adımı yaz. Kendine bir soru üret ve çöz: 8 bitlik ADC, V_REF = 5 V, giriş 2 V → çıkış? Aynı soru 10 bitte?',
+    'ch9/cozunurluk': { q: 'Çözünürlük formülünü ve 1 bitlik adımı yaz. Kendine bir soru üret ve çöz: 8 bitlik ADC, V_REF = 5 V, giriş 2 V → çıkış? Aynı soru 10 bitte?',
       points: ['Çözünürlük 2ⁿ', '1 bit = (V_REF+ − V_REF−)/2ⁿ', '8 bit: 19,53 mV → 2000/19,53 = 102', '10 bit: 4,882 mV → 409'] },
-    'ch8/modul': { q: 'ADC ile ilgili kaydedicileri ve her birinin görevini yaz. ADFM = 0 ve 1 için 10 bitlik sonucun ADRESH/ADRESL\'ye yerleşimini çiz.',
+    'ch9/modul': { q: 'ADC ile ilgili kaydedicileri ve her birinin görevini yaz. ADFM = 0 ve 1 için 10 bitlik sonucun ADRESH/ADRESL\'ye yerleşimini çiz.',
       points: ['ADCON0: ADON, kanal, saat, GO/DONE', 'ADCON1: ADFM, ADCS2, PCFG', 'ADRESH/ADRESL: sonuç', 'PIE1.ADIE, PIR1.ADIF, INTCON GIE/PEIE', 'Sola yaslı: ADRESH = üst 8 bit; sağa yaslı: ADRESH alt 2 bit + ADRESL'] },
-    'ch8/calistirma': { q: 'ADC\'yi çalıştırma adımlarını sırayla yaz. 8 MHz için T_AD\'yi 1,6 µs şartına göre seç ve bir çevrimin yaklaşık süresini hesapla.',
+    'ch9/calistirma': { q: 'ADC\'yi çalıştırma adımlarını sırayla yaz. 8 MHz için T_AD\'yi 1,6 µs şartına göre seç ve bir çevrimin yaklaşık süresini hesapla.',
       points: ['ADCON1/ADCON0 ayarı, ADON', 'Kesme bitleri (isteğe bağlı)', 'Veri toplama bekle', 'GO = 1', 'Polling (GO/DONE) veya ADIF kesmesi', 'ADRESH/L oku', '8 MHz: 16 T_OSC = 2 µs, 12 × 2 = 24 µs'] },
-    'ch8/kod': { q: 'Uygulama 19\'u hafızadan yaz. ADCON1 = 0x4E ve ADCON0 = 0x45\'i bitlerine ayırıp anlamını yaz. Uygulama 20 ile farkı nedir?',
+    'ch9/kod': { q: 'Uygulama 19\'u hafızadan yaz. ADCON1 = 0x4E ve ADCON0 = 0x45\'i bitlerine ayırıp anlamını yaz. Uygulama 20 ile farkı nedir?',
       points: ['ISR: adc_degeri = ADRESH; ADIF = 0; GO = 1', '0x4E: sola yaslı, AN0 analog', '0x45: Fosc/16, AN0, GO=1, ADON=1', 'ADIE, PEIE, GIE = 1', 'Uyg. 20: ADC_Get_Sample (polling) ve × 0,249'] }
   };
 
@@ -181,19 +193,28 @@
     ch7: {
       intro: { uses: [['ch6', 'INTCON: GIE, TMR0IE, TMR0IF; ISR', 'intcon'], ['ch1', 'Makine döngüsü = saat darbeleri', 'cpu'], ['ch4', 'Bit operatörü ~ (değilleme)', 'operator'], ['ch2', 'OPTION_REG\'in RAM\'deki yeri (81h)', 'bellek']], builds: 'Kesmeyi biliyorsun (B6). Şimdi kesmenin <b>ne zaman</b> geleceğini sen belirliyorsun: komut döngüsünü (B1: 4 saat darbesi) sayan bir sayaç, onu bölen bir ön ölçekleyici ve taşma anında kurulan TMR0IF. Yeni olan: <b>TMR = 256 − G·F/(P·4)</b> hesabı ve kare dalga frekansı.' },
       links: [['ch1', '<b>Makine döngüsü (B1) → ×4 (B7):</b> formüldeki 4, bir komutun 4 saat darbesi sürmesinden gelir.'], ['ch6', '<b>INTCON (B6) → Timer0 kesmesi (B7):</b> INTCON = 0xA0 = GIE + TMR0IE. ISR\'de TMR0IF silinmezse Deney 4\'teki INTF hatasının aynısı olur.'], ['ch4', '<b>~ operatörü (B4) → kare dalga (B7):</b> PORTB.F0 = ~PORTB.F0 her kesmede pini terslerken periyot = 2 × kesme aralığı.'], ['ch3', '<b>RA4/T0CKI (B3) → sayaç modu (B7):</b> T0CS = 1 olunca Timer0 bu pindeki dış darbeleri sayar.']],
-      next: '<b>Bölüm 8</b> son çevresel birimi ekler: <b>ADC</b>. O da çevrim bitince kesme üretir (ADIF), ama Timer0\'dan farklı olarak çevresel bir kesmedir: <b>PEIE</b> ve PIE1/PIR1 devreye girer. Çevrim süresi yine osilatörden türetilen bir saatle (T_AD) belirlenir.',
+      next: '<b>Bölüm 8</b> (hafta 7) port bilgisini bir göstergeye bağlar: <b>7 segment display</b>. PORTB\'ye yazılan sayının her biti bir segmenti yakar; çok haneli göstergede haneler sırayla birkaç ms yakılır (multiplexing). Ardından <b>Bölüm 9</b> ADC\'yi ekler.',
       questions: [
         { q: 'B1 + B6 + B7: 4 MHz\'te ISR\'ye girip bağlamı saklamak 12 komut sürüyorsa Uygulama 15\'in kare dalgası tam 500 Hz olur mu? Nasıl düzeltirsin?', a: 'Olmaz. Taşmadan TMR0 = 6 yazılana kadar ~12 µs geçer; bu sürede sayılan değer TMR0 yeniden yazılınca kaybolur, her yarım periyot ~1,012 ms olur → ~494 Hz. Düzeltme: TMR0\'a 6 yerine kayıp döngüleri telafi eden daha büyük değer yazmak (prescale 1:4 için ~3 artış → TMR0 = 9) ya da TMR0 += 6 gibi o anki değere ekleyerek yüklemek.' },
         { q: 'B2 + B7: OPTION_REG = 1 yazınca PORTB\'deki butonlar için ne değişir? (İpucu: bit 7.)', a: 'Bit 7 RBPU = 0 olur → PORTB\'nin dahili pull-up dirençleri açılır. Girişe ayarlı PORTB pinleri buton basılı değilken 1 okunur (pull-up). Uygulama 15\'te PORTB çıkış olduğu için etkisi yok, ama aynı projede PORTB\'ye pull-down butonlar bağlanırsa okuma mantığı değişir.' }
       ]
     },
     ch8: {
+      intro: { uses: [['ch3', 'TRIS / PORT: bir bitin pinde 5 V ya da 0 V olması', 'tris'], ['ch4', '/, %, <<, ~ operatörleri ve diziler', 'operator'], ['ch5', 'Buton okuma (polling) ve LED desenleri', 'giris'], ['ch7', 'Gecikme ve Timer kesmesi', 'kod']], builds: 'Şimdiye kadar PORTB\'nin her biti tek bir LED\'i yakıyordu (B5). 7 segment göstergede aynı 8 bit <b>birlikte bir rakam</b> çizer: sayı → bit deseni → pin gerilimleri → yanan segmentler. Yeni olan: ortak anot/katot, BCD sürücü, sayıyı basamaklara ayırma ve haneleri sırayla yakma (multiplexing).' },
+      links: [['ch3', '<b>PORT çıkışı (B3) → segment (B8):</b> PORTB\'ye 1 yazmak pini 5 V yapar; ortak katotlu göstergede o segmentten akım geçer.'], ['ch4', '<b>~ operatörü (B4) → ortak anot (B8):</b> aynı bağlantıda ortak anot kodu ortak katot kodunun bit bit tersidir.'], ['ch4', '<b>/ ve % (B4) → basamaklar (B8):</b> sayac/10 onlar, sayac%10 birler; ×16 = <<4 üst 4 bite taşır.'], ['ch5', '<b>Buton (B5) → sayaç (B8):</b> Uygulama 24–26 Uygulama 11\'deki if(PORTD.F0==1) kalıbını kullanır; Uygulama 26 bir de önceki durumu (pd) tutar.'], ['ch7', '<b>Timer (B7) → tarama (B8):</b> multiplexing\'de her hanenin süresi Delay_ms(1) ile; Timer0 kesmesiyle yapılırsa buton gecikmesinde titreme olmaz.']],
+      next: '<b>Bölüm 9</b> ADC\'dir; sunumu önce "hafta 7" adıyla paylaşıldı ama derste henüz işlenmedi. Vizeye kadar asıl iş: <b>Vize kampı</b>ndaki kod yazma soruları ve hesap alıştırmaları.',
+      questions: [
+        { q: 'B4 + B8: Uygulama 25\'te sayac signed int yerine unsigned char tanımlansaydı aşağı butonuyla 0\'dan aşağı inince ne olurdu?', a: 'unsigned char 0 − 1 = 255 olur; if(sayac<0) hiç doğru olmaz. sayac>99 kontrolü yalnızca yukarı butonunda var, bu yüzden sayac 255\'te kalır: onlar = 25, ×16 = 400 → 8 bite sığmaz (0x90), birler 5 → PORTB = 0x95: göstergede anlamsız "95". Doğru tip signed int.' },
+        { q: 'B5 + B7 + B8: 4 haneli multiplexing taramasını Timer0 kesmesine taşımak istiyorsun (4 MHz). 1 ms\'lik kesme için ayar ne olur, ISR\'de ne yapılır?', a: 'OPTION_REG = 1 (1:4), TMR0 = 6, INTCON = 0xA0. ISR: TMR0 = 6; sıradaki haneyi seç (PORTC), o hanenin basamağını PORTB\'ye yaz, hane sayacını 0→1→2→3→0 artır; TMR0IF = 0. Ana döngü yalnızca butonları okur; Delay_ms(100) sırasında bile tarama sürer, titreme olmaz.' }
+      ]
+    },
+    ch9: {
       intro: { uses: [['ch6', 'PEIE ve çevresel kesmeler', 'intcon'], ['ch7', 'Osilatörden türetilen saat, × bölen hesabı', 'hesap'], ['ch3', 'PORTA/PORTE analog pinleri', 'portlar'], ['ch4', 'Tipler: 10 bit sonuç int/float\'a', 'tipler']], builds: 'Şimdiye kadar pinler yalnızca 0 ya da 1 idi (B3). ADC ile bir pinin <b>gerilimini sayıya</b> çevireceksin. Kurulum kalıbı Timer0\'la aynı: kaydedicileri ayarla (ADCON0/1), kesme izinlerini aç (PEIE dahil, B6), olay olunca bayrağı sil (ADIF). Yeni olan: Nyquist, çözünürlük ve 10 bitin iki kaydediciye yerleşimi.' },
-      links: [['ch3', '<b>Dijital giriş (B3) → analog giriş (B8):</b> PCFG bitleri bir pinin Schmitt\'li dijital giriş mi analog giriş mi olacağını seçer; analog pin yine TRIS ile giriş yapılmalı.'], ['ch6', '<b>Çevresel kesme (B6) → ADC kesmesi (B8):</b> GIE + PEIE + ADIE; ISR\'de ADIF silinir.'], ['ch7', '<b>Saat bölme (B7) → T_AD (B8):</b> Timer\'da F_OSC/4 bölünüyordu; ADC\'de F_OSC 2…64\'e bölünür ve T_AD ≥ 1,6 µs olmalı.'], ['ch4', '<b>Tipler (B4) → ölçekleme (B8):</b> 10 bitlik sonuç (0–1023) 8 bitlik PORTB\'ye ya ADRESH (sola yaslı, /4) ya da × 0,249 ile sığdırılır.']],
+      links: [['ch3', '<b>Dijital giriş (B3) → analog giriş (B9):</b> PCFG bitleri bir pinin Schmitt\'li dijital giriş mi analog giriş mi olacağını seçer; analog pin yine TRIS ile giriş yapılmalı.'], ['ch6', '<b>Çevresel kesme (B6) → ADC kesmesi (B9):</b> GIE + PEIE + ADIE; ISR\'de ADIF silinir.'], ['ch7', '<b>Saat bölme (B7) → T_AD (B9):</b> Timer\'da F_OSC/4 bölünüyordu; ADC\'de F_OSC 2…64\'e bölünür ve T_AD ≥ 1,6 µs olmalı.'], ['ch4', '<b>Tipler (B4) → ölçekleme (B9):</b> 10 bitlik sonuç (0–1023) 8 bitlik PORTB\'ye ya ADRESH (sola yaslı, /4) ya da × 0,249 ile sığdırılır.']],
       next: 'Vize kapsamının sonu. Şimdi <b>Hocanın soruları</b> sayfasında kart moduyla karışık tekrar yap ve Laboratuvar araçlarındaki alıştırmaları her gün birkaç tur çöz: aralıklı ve karışık tekrar, tek seferlik uzun çalışmadan daha kalıcıdır.',
       questions: [
-        { q: 'B6 + B7 + B8: Timer0 kesmesi ile ADC kesmesini aynı programda açarsan ISR kaynağı nasıl anlar? İzin bitleri ne olmalı?', a: 'İki kesme de 0004h\'e gelir. ISR içinde if(INTCON.TMR0IF) { … TMR0IF = 0; } ve if(PIR1.ADIF) { … ADIF = 0; } ile bayraklara bakılır. İzinler: GIE = 1, TMR0IE = 1 (INTCON), PEIE = 1 ve PIE1.ADIE = 1.' },
-        { q: 'B7 + B8: 1 kHz\'e kadar bileşen içeren bir sinyali Timer0 ile düzenli aralıklarla örneklemek istiyorsun (4 MHz). Örnekleme aralığı en fazla kaç µs olmalı ve Timer0 ayarı ne olabilir?', a: 'Nyquist: f_s ≥ 2 kHz → aralık ≤ 500 µs. 4 MHz\'te 500 µs: 500 / (P × 1 µs) → P = 2 ile 250 → TMR0 = 6 (OPTION_REG = 0). Her Timer0 kesmesinde GO = 1 yapılarak çevrim başlatılır (pratikte biraz daha sık örneklemek daha iyidir).' }
+        { q: 'B6 + B7 + B9: Timer0 kesmesi ile ADC kesmesini aynı programda açarsan ISR kaynağı nasıl anlar? İzin bitleri ne olmalı?', a: 'İki kesme de 0004h\'e gelir. ISR içinde if(INTCON.TMR0IF) { … TMR0IF = 0; } ve if(PIR1.ADIF) { … ADIF = 0; } ile bayraklara bakılır. İzinler: GIE = 1, TMR0IE = 1 (INTCON), PEIE = 1 ve PIE1.ADIE = 1.' },
+        { q: 'B7 + B9: 1 kHz\'e kadar bileşen içeren bir sinyali Timer0 ile düzenli aralıklarla örneklemek istiyorsun (4 MHz). Örnekleme aralığı en fazla kaç µs olmalı ve Timer0 ayarı ne olabilir?', a: 'Nyquist: f_s ≥ 2 kHz → aralık ≤ 500 µs. 4 MHz\'te 500 µs: 500 / (P × 1 µs) → P = 2 ile 250 → TMR0 = 6 (OPTION_REG = 0). Her Timer0 kesmesinde GO = 1 yapılarak çevrim başlatılır (pratikte biraz daha sık örneklemek daha iyidir).' }
       ]
     }
   };

@@ -108,6 +108,7 @@
         blocks: [
           { t: 'h', text: 'Formül (slayt 15)' },
           { t: 'def', term: 'TMRx değeri', html: '<b>TMRx_reg = Timer_max − (Gecikme × F<sub>OSC</sub>) / (Prescale × 4)</b><br>F<sub>OSC</sub>: ana osilatör frekansı · Timer_max: 8 bit için <b>256</b>, 16 bit için <b>65536</b>' },
+          { t: 'note', kind: 'exam', label: '★ Kesin çıkar', html: 'Bu formül sınıf içinde "kesin çıkar sorusu" diye paylaşıldı; geçen yılın kod sorusunda da timer hesabı vardı. Formülü ve her terimini (Timer_max, F<sub>osc</sub>, Prescale, neden 4) ezbere yazabilmelisin. Alıştırma: <a href="#/vize/timer">Vize kampı › Timer hesabı</a>.' },
           { t: 'h', text: 'Neden Prescaler × 4? (slayt 17)' },
           { t: 'p', html: '16F877A\'da 3 tür komut vardır (bit tabanlı, byte tabanlı, literal ve kontrol). <b>Hepsinin işlemesi için 4 saat darbesi</b> geçmesi gerekir. 4 MHz\'te bir komut 4 × (1/F<sub>OSC</sub>) = 4 / (4·10<sup>6</sup>) = <b>1 µs</b> sürer. Timer0 dahili modda her <b>komut döngüsünde</b> (F<sub>OSC</sub>/4) bir kez sayar. Dolayısıyla 4, prescaler\'a çarpan, başka bir deyişle çalışma frekansına bölendir.' },
           { t: 'p', html: 'Aynı formülün mantığı: Timer\'ın bir artışı = Prescale × 4 / F<sub>OSC</sub> saniye. Gecikme için gereken artış sayısı = Gecikme / (bir artış süresi). Taşmaya o kadar kalması için TMR0 = 256 − artış sayısı.' },
@@ -163,7 +164,9 @@
           { t: 'note', kind: 'fix', html: 'Uygulama 18\'in yorumunda "PS2:PS0=001, prescaler=2" yazıyor; OPTION_REG = 0 → PS2:PS0 = <b>000</b>, oran <b>1:2</b>. Oran doğru, yorumdaki bit deseni kopyalanmış. Uygulama 16–17\'de de yorum 001 der ama değer 2 = <b>010</b> (1:8).' },
           { t: 'dg', id: 'timercalc', fosc: 8, delay: 100, unit: 'us', title: 'Kendi sayılarınla dene' },
           { t: 'dg', id: 'quiz', types: ['timer'] },
-          { t: 'dg', id: 'quiz', types: ['option'] }
+          { t: 'dg', id: 'quiz', types: ['option'] },
+          { t: 'note', kind: 'exam', html: 'Geçen yılın kod sorusunda timer hesabı vardı. Tersinden de sorulabilir: <b>kod verilir, frekansı bulman istenir</b>. OPTION_REG\'in son 3 bitinden P\'yi, TMR0\'dan sayımı (256 − TMR0) oku.' },
+          { t: 'dg', id: 'quiz', types: ['tmrcode'] }
         ],
         checks: [
           { q: '8 MHz, prescale 1:8 ile 100 µs için TMR0 kaç olmalı?', a: '256 − (100 µs × 8 MHz)/(8 × 4) = 256 − 25 = 231.' },

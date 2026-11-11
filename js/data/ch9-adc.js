@@ -1,18 +1,18 @@
 /*
- * ch8-adc.js — Bölüm 8: Analog-sayısal çevrim (ADC).
- * Kaynak: hafta 7 sunumu slayt 1–21, Uygulama 19–20, PIC16F877A veri sayfası (bölüm 11).
+ * ch9-adc.js — Bölüm 9: Analog-sayısal çevrim (ADC).
+ * Kaynak: ADC sunumu (ilk paylaşılan "hafta 7" dosyası) slayt 1–21, Uygulama 19–20, PIC16F877A veri sayfası (bölüm 11).
  */
 (function (MC) {
   'use strict';
 
   MC.lessons.chapters.push({
-    id: 'ch8',
-    num: 8,
+    id: 'ch9',
+    num: 9,
     title: 'Analog-Sayısal Çevrim (ADC)',
     short: 'ADC',
     navSub: 'Nyquist, çözünürlük, ADCON0/1',
-    week: 'Hafta 7',
-    source: 'Hafta 7 sunumu, slayt 1–21 · Uygulama 19–20',
+    week: 'ADC sunumu',
+    source: 'ADC sunumu (ilk "hafta 7" dosyası), slayt 1–21 · Uygulama 19–20',
     objectives: [
       'Analog ve dijital sinyali, örneklemeyi ve nicemlemeyi açıklamak',
       'Nyquist şartını uygulayıp minimum örnekleme frekansını bulmak',
@@ -24,7 +24,7 @@
     outline: {
       topics: [['Sinyaller, örnekleme ve Nyquist', 'ornekleme'], ['Çözünürlük ve ADC hesabı', 'cozunurluk'], ['PIC16F877A ADC modülü ve kaydedicileri', 'modul'], ['ADC\'yi çalıştırma adımları ve T<sub>AD</sub> (çevrim saati)', 'calistirma'], ['Örnek kodlar: Uygulama 19 ve 20', 'kod']],
       concepts: ['Sürekli / ayrık zamanlı sinyal', 'Örnekleme', 'Nicemleme (quantization)', 'f<sub>s</sub> ≥ 2·f<sub>max</sub>', 'Nyquist değeri / frekansı', 'Örtüşme (aliasing)', 'Çözünürlük 2ⁿ', '1 bit = (V<sub>REF+</sub> − V<sub>REF−</sub>)/2ⁿ', 'ADCON0: ADON, CHS, GO/DONE', 'ADCON1: ADFM, PCFG', 'ADRESH / ADRESL', 'ADIF / ADIE', 'T<sub>AD</sub> ≥ 1,6 µs', '12 T<sub>AD</sub>', 'Polling / kesme ile okuma'],
-      why: 'ADC hesabı (3,25 V örneği) ve Nyquist sorusu kısa hesap sorusu olarak çok uygun. Kaydedici değerlerinin (0x4E, 0x45) çözümü de kod okuma sorusu.'
+      why: '<b>Kapsam uyarısı:</b> bu sunum önce "hafta 7" adıyla paylaşıldı, ama derste hafta 7\'de 7 segment display işlendi (Bölüm 8). ADC derste henüz anlatılmadı; vizede olup olmadığı belli değil. Önce Bölüm 1–8\'i bitir. ADC hesabı (3,25 V örneği) ve Nyquist sorusu kısa hesap sorusu olarak çok uygun. Kaydedici değerlerinin (0x4E, 0x45) çözümü de kod okuma sorusu.'
     },
     lessons: [
       {

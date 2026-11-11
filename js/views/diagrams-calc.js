@@ -408,11 +408,168 @@
       return { q: `Timer0 dahili saatle (T0CS=0) çalışacak, ön ölçek Timer0'a atanacak (PSA=0) ve oranı <b>1:${2 << psI}</b> olacak. RBPU=0 ve INTEDG=${edge}, T0SE=0. OPTION_REG'e hangi hex değer yazılmalı?`, check: (s) => MC.parseNum(s) === v, sol: `RBPU INTEDG T0CS T0SE PSA PS2 PS1 PS0 = 0 ${edge} 0 0 0 ${MC.bin(psI, 3).split('').join(' ')} → <b>${MC.hex(v)}</b>` };
     }
   };
-  const QNAME = { tris: 'TRIS değeri', port: 'PORT değeri', base: 'Taban dönüşümü', twos: 'İkiye tümleme', timer: 'Timer0 hesabı', adc: 'ADC hesabı', nyq: 'Nyquist', option: 'OPTION_REG' };
+  /* ---------- vize odaklı soru tipleri: IEEE 754, tip boyutu, absolute çakışması, kaydırma, koddan timer, 7 segment */
+  // "0b1010…", 8 haneli ikili, çıplak hex ("DA") veya MC.parseNum biçimleri
+  const parseAny = (s) => {
+    const t = String(s).trim().replace(/[\s_]+/g, '');
+    if (/^[01]{8}$/.test(t) || /^[01]{16}$/.test(t)) return parseInt(t, 2);
+    if (/^[0-9a-f]+$/i.test(t) && /[a-f]/i.test(t)) return parseInt(t, 16);
+    return MC.parseNum(t);
+  };
+  const hexOrNum = (s, ans) => parseAny(s) === ans || parseInt(String(s).trim().replace(/^0x/i, ''), 16) === ans;
+  const f32 = (v) => { const dv = new DataView(new ArrayBuffer(4)); dv.setFloat32(0, v); return dv.getUint32(0); };
+  const ieeeNum = () => {
+    const fr = [0, 0.5, 0.25, 0.75, 0.125, 0.375, 0.625, 0.875, 0.0625, 0.1875, 0.3125];
+    let v = 0;
+    while (!v) v = [R(0, 3), R(4, 40), R(41, 300)][R(0, 2)] + fr[R(0, fr.length - 1)];
+    return Math.random() < 0.5 ? -v : v;
+  };
+  // IEEE 754 adım adım çözüm
+  const ieeeSteps = (v) => {
+    const a = Math.abs(v);
+    const ip = Math.floor(a);
+    let fp = a - ip;
+    let fb = '';
+    while (fp > 0 && fb.length < 23) { fp *= 2; fb += fp >= 1 ? '1' : '0'; if (fp >= 1) fp -= 1; }
+    const ib = ip.toString(2);
+    let e;
+    let mant;
+    if (ip > 0) { e = ib.length - 1; mant = ib.slice(1) + fb; } else { const k = fb.indexOf('1'); e = -(k + 1); mant = fb.slice(k + 1); }
+    const u = f32(v);
+    const bits = MC.bin(u, 32);
+    return `<ol class="l-list"><li>İşaret: ${v < 0 ? 'negatif → <b>S = 1</b>' : 'pozitif → <b>S = 0</b>'}</li>
+      <li>İkiliye çevir: ${a} = <b>${ib}${fb ? '.' + fb : ''}</b>₂${fb ? ` (kesir: ×2 yöntemi, ${a - ip} → ${fb})` : ''}</li>
+      <li>Normalize et: 1.${mant || '0'} × 2<sup>${e}</sup></li>
+      <li>Üs: ${e} + 127 = ${e + 127} = <b>${MC.bin(e + 127, 8)}</b></li>
+      <li>Mantis (baştaki 1 yazılmaz, 23 bite sağdan 0 ile tamamla): <b>${(mant || '').padEnd(23, '0')}</b></li>
+      <li>Birleştir: <code>${bits[0]} ${bits.slice(1, 9)} ${bits.slice(9)}</code> → 4'lü grupla: <code>${bits.replace(/(\d{4})(?=\d)/g, '$1 ')}</code> = <b>${MC.hex(u, 8)}</b></li>
+      <li>RAM'de (düşük bayt düşük adreste): ${[0, 8, 16, 24].map((s) => MC.hexH((u >>> s) & 255)).join(' ')}</li></ol>`;
+  };
+  const TSIZE = { char: 1, 'unsigned char': 1, short: 1, 'unsigned short': 1, int: 2, 'unsigned int': 2, long: 4, 'unsigned long': 4, float: 4, double: 4 };
+  const BYTES = { char: 1, int: 2, long: 4 };
+  Object.assign(GEN, {
+    ieee() {
+      const v = ieeeNum();
+      const u = f32(v);
+      return { q: `<code>float x = ${v};</code> IEEE 754 (32 bit) gösterimi hex olarak nedir?`, check: (s) => hexOrNum(s, u) || (parseAny(s) >>> 0) === u, sol: ieeeSteps(v) };
+    },
+    ieeer() {
+      const v = ieeeNum();
+      const u = f32(v);
+      const b = MC.bin(u, 32);
+      const e = parseInt(b.slice(1, 9), 2);
+      return { q: `IEEE 754 32 bit gösterimi <b>${MC.hex(u, 8)}</b> olan float sayı ondalık olarak kaçtır?`, check: (s) => Math.abs(Number(String(s).replace(',', '.')) - v) < 1e-6,
+        sol: `<code>${b[0]} ${b.slice(1, 9)} ${b.slice(9)}</code> → S = ${b[0]} (${b[0] === '1' ? 'negatif' : 'pozitif'}), üs = ${e} − 127 = ${e - 127}, mantis = 1.${b.slice(9).replace(/0+$/, '') || '0'}₂ → (−1)<sup>${b[0]}</sup> × 1.${b.slice(9).replace(/0+$/, '') || '0'}₂ × 2<sup>${e - 127}</sup> = <b>${v}</b>` };
+    },
+    size() {
+      const names = ['a', 'b', 'c', 'd', 'x', 'y', 'deger', 'sayac', 'dizi', 'tablo'];
+      const decl = [];
+      let total = 0;
+      const n = R(2, 4);
+      const used = pickN([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], n);
+      used.forEach((ni) => {
+        const tp = Object.keys(TSIZE)[R(0, 9)];
+        const arr = Math.random() < 0.4 ? R(2, 12) : 0;
+        const sz = TSIZE[tp] * (arr || 1);
+        total += sz;
+        decl.push([`${tp} ${names[ni]}${arr ? `[${arr}]` : ''};`, `${tp}${arr ? ` × ${arr}` : ''} = ${TSIZE[tp]}${arr ? ` × ${arr}` : ''} = ${sz} B`]);
+      });
+      return { q: `mikroC (PIC16F877A) için aşağıdaki değişkenler RAM'de toplam kaç bayt yer kaplar?<pre class="l-code">${decl.map((d) => d[0]).join('\n')}</pre>`, check: (s) => MC.parseNum(s) === total,
+        sol: `${decl.map((d) => d[1]).join(' · ')} → toplam <b>${total} bayt</b>. Hatırla: char/short 1, int 2, long/float/double 4 bayt (mikroC'de double = float).` };
+    },
+    overlap() {
+      const pairs = [['int', 'char', 1], ['long', 'char', 3], ['long', 'char', 1], ['long', 'int', 2], ['int', 'int', 1], ['char', 'int', 0]];
+      const [t1, t2, off] = pairs[R(0, pairs.length - 1)];
+      const base = R(0x20, 0x60);
+      const val = (t) => (t === 'char' ? R(1, 255) : t === 'int' ? R(0x100, 0xffff) : R(0x1000000, 0x7fffffff));
+      const v1 = val(t1);
+      const v2 = val(t2);
+      const firstBig = Math.random() < 0.7;
+      const mem = {};
+      const put = (addr, t, v) => { for (let i = 0; i < BYTES[t]; i++) mem[addr + i] = Math.floor(v / 2 ** (8 * i)) & 255; };
+      const get = (addr, t) => { let v = 0; for (let i = BYTES[t] - 1; i >= 0; i--) v = v * 256 + mem[addr + i]; return v; };
+      const w = firstBig ? [['x', base, t1, v1], ['y', base + off, t2, v2]] : [['y', base + off, t2, v2], ['x', base, t1, v1]];
+      w.forEach(([, a, t, v]) => put(a, t, v));
+      const ask = firstBig ? ['x', base, t1] : ['y', base + off, t2];
+      const ans = get(ask[1], ask[2]);
+      const dig = (t) => BYTES[t] * 2;
+      const lo = Math.min(base, base + off);
+      const hi = Math.max(base + BYTES[t1], base + off + BYTES[t2]);
+      const cells = [];
+      for (let a = lo; a < hi; a++) cells.push(`<td>${MC.hexH(a)}: <b>${MC.hexH(mem[a])}</b>${a >= base && a < base + BYTES[t1] && a >= base + off && a < base + off + BYTES[t2] ? ' <span class="dg-bad">çakışma</span>' : ''}</td>`);
+      return {
+        q: `<pre class="l-code">unsigned ${t1} x absolute ${MC.hex(base)};\nunsigned ${t2} y absolute ${MC.hex(base + off)};\nvoid main() {\n ${w.map(([n, , t, v]) => `${n} = ${MC.hex(v, dig(t))};`).join('\n ')}\n}</pre>Program bitince <b>${ask[0]}</b> değişkeninin değeri kaçtır? (hex yaz, ör. 0x12AB)`,
+        check: (s) => hexOrNum(s, ans),
+        sol: `${t1} ${BYTES[t1]} bayt: x ${MC.hexH(base)}…${MC.hexH(base + BYTES[t1] - 1)}; ${t2} ${BYTES[t2]} bayt: y ${MC.hexH(base + off)}…${MC.hexH(base + off + BYTES[t2] - 1)}. Düşük bayt düşük adrese yazılır (little endian); <b>sonra yazılan, ortak baytı ezer</b>. Son durum:<div class="table-wrap"><table class="calc-t"><tr>${cells.join('')}</tr></table></div>${ask[0]} = <b>${MC.hex(ans, dig(ask[2]))}</b>`
+      };
+    },
+    shift() {
+      const OPS = [['PORTB = PORTB << 1;', (v) => v << 1], ['PORTB = PORTB >> 1;', (v) => v >> 1], ['PORTB = PORTB << 2;', (v) => v << 2], ['PORTB = PORTB >> 2;', (v) => v >> 2], ['PORTB = ~PORTB;', (v) => ~v], ['PORTB = PORTB | 0x0F;', (v) => v | 0x0f], ['PORTB = PORTB & 0xF0;', (v) => v & 0xf0], ['PORTB = PORTB * 2 + 1;', (v) => v * 2 + 1], ['PORTB = PORTB ^ 0x81;', (v) => v ^ 0x81], ['PORTB = (PORTB >> 1) | 0x80;', (v) => (v >> 1) | 0x80]];
+      let v = R(1, 254);
+      const start = v;
+      const ops = pickN([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], R(2, 3)).sort(() => Math.random() - 0.5).map((i) => OPS[i]);
+      const rows = [`<tr><td><code>PORTB = 0b${MC.bin(v)};</code></td><td><code>${MC.binGroup(v)}</code></td></tr>`];
+      ops.forEach(([c, f]) => { v = f(v) & 255; rows.push(`<tr><td><code>${c}</code></td><td><code>${MC.binGroup(v)}</code></td></tr>`); });
+      return { q: `<pre class="l-code">PORTB = 0b${MC.bin(start)};\n${ops.map((o) => o[0]).join('\n')}</pre>Son durumda PORTB kaçtır? (hex ya da 8 bit ikili)`, check: (s) => parseAny(s) === v || hexOrNum(s, v),
+        sol: `<div class="table-wrap"><table class="calc-t">${rows.join('')}</table></div>PORTB 8 bittir: taşan bitler kaybolur, kaydırmada boşalan yere 0 girer. Sonuç <b>${MC.hex(v)}</b>.` };
+    },
+    tmrcode() {
+      for (;;) {
+        const fosc = [4, 8, 16, 20][R(0, 3)];
+        const psI = R(0, 7);
+        const P = 2 << psI;
+        const tmr = R(6, 206);
+        const tint = ((256 - tmr) * P * 4) / fosc; // µs
+        if (tint < 20 || tint > 60000) continue;
+        const opt = (Math.random() < 0.3 ? 0x80 : 0) | psI;
+        const askF = Math.random() < 0.5;
+        const f = 1e6 / (2 * tint);
+        const ans = askF ? f : tint;
+        return {
+          q: `F<sub>OSC</sub> = <b>${fosc} MHz</b>.<pre class="l-code">void interrupt(){\n PORTB.F0 = ~PORTB.F0;\n TMR0 = ${tmr};\n INTCON.TMR0IF = 0;\n}\nvoid main(){\n TRISB = 0;\n OPTION_REG = ${MC.hex(opt)};\n TMR0 = ${tmr};\n INTCON = 0xA0;\n while(1);\n}</pre>${askF ? 'RB0\'da oluşan kare dalganın <b>frekansı</b> kaç Hz?' : 'Timer0 kesmesi kaç <b>µs</b>\'de bir gelir?'} (%1 tolerans)`,
+          check: (s) => Math.abs(Number(String(s).replace(',', '.')) - ans) <= Math.abs(ans) * 0.01,
+          sol: `OPTION_REG = ${MC.bin(opt)} → PS2:PS0 = ${MC.bin(psI, 3)} → ön ölçek <b>1:${P}</b> (PSA = 0, T0CS = 0${opt & 0x80 ? '; bit 7 RBPU yalnızca pull-up\'ı etkiler' : ''}). Sayım = 256 − ${tmr} = ${256 - tmr}. Kesme aralığı = ${256 - tmr} × ${P} × 4 / ${fosc} MHz = <b>${+tint.toFixed(3)} µs</b>.${askF ? ` Pin her kesmede değiştiği için periyot = 2 × ${+tint.toFixed(3)} µs → f = <b>${+f.toFixed(2)} Hz</b>.` : ''}`
+        };
+      }
+    },
+    seg() {
+      const d = R(0, 9);
+      const ca = Math.random() < 0.5;
+      const v = MC.seg.toPort(MC.seg.DIGIT[d], ca);
+      const lit = MC.seg.NAMES.filter((n, i) => (MC.seg.DIGIT[d] >> i) & 1).join(', ');
+      if (Math.random() < 0.6) {
+        return { q: `Ortak <b>${ca ? 'anotlu' : 'katotlu'}</b> 7 segment display B portuna bağlı (a = RB7, b = RB6 … g = RB1, dp = RB0, nokta sönük). <b>${d}</b> rakamı için PORTB'ye ne yazılmalı? (ikili ya da hex)`, check: (s) => parseAny(s) === v || hexOrNum(s, v),
+          sol: `${d} için yanan segmentler: ${lit}. ${ca ? 'Ortak anotta yanacak segmentin pini <b>0</b>, diğerleri 1' : 'Ortak katotta yanacak segmentin pini <b>1</b>, diğerleri 0'} → <code>0b${MC.bin(v)}</code> = <b>${MC.hex(v)}</b>${ca ? ` (ortak katot kodu ${MC.hex(~v & 255)}'in tersi)` : ''}` };
+      }
+      return { q: `Ortak <b>${ca ? 'anotlu' : 'katotlu'}</b> göstergede (a = RB7 … g = RB1, dp = RB0) <code>PORTB = 0b${MC.bin(v)};</code> yazılınca hangi rakam görünür?`, check: (s) => MC.parseNum(s) === d,
+        sol: `${ca ? '0 olan' : '1 olan'} pinlerin segmentleri yanar: ${lit} → <b>${d}</b>` };
+    },
+    digit() {
+      const k = R(0, 2);
+      if (k === 0) {
+        const n = R(10, 99);
+        const v = Math.floor(n / 10) * 16 + (n % 10);
+        return { q: `Uygulama 25 (0–99, iki sürücü: onlar RB7…RB4, birler RB3…RB0). <code>sayac = ${n}</code> iken <code>seven_segment_goster()</code> PORTB'ye hangi değeri yazar? (hex)`, check: (s) => hexOrNum(s, v),
+          sol: `onlar = ${n} / 10 = ${Math.floor(n / 10)} → ×16 = ${MC.hex(Math.floor(n / 10) * 16)}; birler = ${n} % 10 = ${n % 10}; veri = ${MC.hex(Math.floor(n / 10) * 16)} ^ ${n % 10} = <b>${MC.hex(v)}</b> (${MC.binGroup(v)}). Ondalık sayının basamakları hex'te aynen görünür.` };
+      }
+      if (k === 1) {
+        const n = R(1000, 9999);
+        const parts = [['binler', 'sayac/1000', Math.floor(n / 1000)], ['yuzler', '(sayac%1000)/100', Math.floor((n % 1000) / 100)], ['onlar', '(sayac%100)/10', Math.floor((n % 100) / 10)], ['birler', 'sayac%10', n % 10]];
+        const [name, expr, ans] = parts[R(0, 3)];
+        return { q: `Uygulama 26: <code>sayac = ${n}</code> iken <code>${name} = ${expr};</code> kaç olur?`, check: (s) => MC.parseNum(s) === ans, sol: `${expr.replace(/sayac/g, n)} = <b>${ans}</b>. / tam sayı bölmesidir (küsurat atılır), % kalanı verir.` };
+      }
+      const names = ['binler (RC7)', 'yüzler (RC6)', 'onlar (RC5)', 'birler (RC4)'];
+      const i = R(0, 3);
+      const v = ~(1 << (7 - i)) & 255;
+      return { q: `Uygulama 26'da 4 haneli ortak katotlu göstergenin ortak uçları RC7 (binler) … RC4 (birler) pinlerine bağlı. Yalnızca <b>${names[i]}</b> hanesini seçmek için PORTC'ye ne yazılır? (ikili ya da hex)`, check: (s) => parseAny(s) === v || hexOrNum(s, v),
+        sol: `Ortak katotta seçilen hanenin ortak ucu <b>0 V</b>, diğerleri 1: <code>0b${MC.bin(v)}</code> = <b>${MC.hex(v)}</b>. (RC3…RC0 kullanılmıyor, 1 bırakıldı.)` };
+    }
+  });
+  const QNAME = { tris: 'TRIS değeri', port: 'PORT değeri', base: 'Taban dönüşümü', twos: 'İkiye tümleme', timer: 'Timer0 hesabı', adc: 'ADC hesabı', nyq: 'Nyquist', option: 'OPTION_REG', ieee: 'IEEE 754 (sayı → hex)', ieeer: 'IEEE 754 (hex → sayı)', size: 'Tip boyutu (bayt)', overlap: 'absolute çakışması', shift: 'Kaydırma ve bit işlemi', tmrcode: 'Koddan timer hesabı', seg: '7 segment kodu', digit: 'Basamak ayırma / hane seçimi' };
   MC.quizTypes = QNAME;
   MC.dg.add('quiz', {
     html: (p) => `<div class="dg-title">Alıştırma · ${(p.types || [p.type]).map((t) => QNAME[t]).join(' / ')} <span class="muted" style="text-transform:none;letter-spacing:0">(her seferinde yeni soru)</span></div>
-      <p class="quiz-q" data-o="q"></p><div class="quiz-in"><input type="text" data-o="a" placeholder="cevap" autocomplete="off"><span data-o="x"></span>
+      <div class="quiz-q" data-o="q"></div><div class="quiz-in"><input type="text" data-o="a" placeholder="cevap" autocomplete="off"><span data-o="x"></span>
       <button class="btn btn-sm btn-primary" type="button" data-c="chk">Kontrol et</button><button class="btn btn-sm" type="button" data-c="sol">Çözüm</button><button class="btn btn-sm btn-ghost" type="button" data-c="new">Yeni soru ↻</button><span class="quiz-score" data-o="sc"></span></div>
       <div class="quiz-res" data-o="r"></div>`,
     init(el, p) {
