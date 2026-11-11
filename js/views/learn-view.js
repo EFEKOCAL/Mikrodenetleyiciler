@@ -246,6 +246,11 @@
   }
 
   /* ------------------------------------------------------------ sayfalar */
+  // Akış dışındaki sayfaların ortak üst çubuğu: menü, ana sayfa, nerede olduğun, genel ilerleme
+  const pageTop = (crumbs) => `<header class="pg-top"><button class="icon-btn" type="button" data-act="menu" aria-label="Menüyü aç">☰</button><a class="pg-brand" href="#/">μC Lab</a><nav class="pg-crumbs">${crumbs}</nav><a class="pg-pct" href="#/plan" title="Genel ilerleme">%${overallPct()}</a></header>`;
+  MC.pageTop = pageTop;
+  // Bugün tekrar edilmesi gereken sorular: bilinemeyenler + başka bir gün bilinip henüz pekişmeyenler
+  const dueCount = () => questions().filter((q) => { const s = qState(q.id); return s.box === 1 || (s.box === 2 && s.day !== today()); }).length;
   function pageHome() {
     const nl = nextLesson();
     const started = allLessons().some(({ ch, l }) => isRead(ch, l) || seenCard(ch, l) > 0);
@@ -258,7 +263,8 @@
       <section class="fx-start"><span class="tag">BLM3007 · Dr. Timur İnan · Vize hazırlığı</span>
         <h2>Mikrodenetleyiciler</h2><p class="fx-start-sub">PIC16F877A · mikroC · konu konu, simülasyonlu</p>
         ${action}
-        <div class="fx-start-links"><a class="btn btn-sm" href="#/plan">Genel bakış</a><a class="btn btn-sm" href="#/sorular">Hocanın soruları</a><a class="btn btn-sm" href="#/lab">Laboratuvar araçları</a></div>
+        ${started ? '' : '<ol class="fx-how"><li><b>Oku ve dene</b><span>kısa kartlar, simülasyon</span></li><li><b>Ekrana bakmadan hatırla</b><span>her dersin sonunda</span></li><li><b>Tekrar et</b><span>bölüm sonu + hocanın soruları</span></li></ol>'}
+        <div class="fx-start-links">${dueCount() ? `<a class="btn btn-sm due" href="#/sorular">⟳ Bugün tekrar: ${dueCount()} soru</a>` : '<a class="btn btn-sm" href="#/sorular">Hocanın soruları</a>'}<a class="btn btn-sm" href="#/lab/alistirma">Hesap alıştırması</a><a class="btn btn-sm" href="#/lab">Simülatörler</a><a class="btn btn-sm btn-ghost" href="#/plan">Tüm bölümler</a></div>
       </section></div>`;
   }
 
@@ -282,8 +288,7 @@
       ['6', 'Zamanlayıcılar: Timer0/1/2, ön ölçekleme, gecikme hesabı', 'ch7', 'Deney 5'],
       ['7', 'Analog-sayısal çevrim (ADC)', 'ch8', '—']
     ];
-    return `<div class="page"><div class="page-inner">
-      <nav class="l-crumbs"><a href="#/">Başlangıç</a> › Genel bakış</nav>
+    return `<div class="page">${pageTop('<b>Genel bakış</b>')}<div class="page-inner">
       <section class="card l-chhead"><span class="tag">BLM3007 · Mikrodenetleyiciler · PIC16F877A</span><h2>Genel bakış</h2>
         <div class="qx-stats" style="grid-template-columns:repeat(2,minmax(0,220px))"><div class="mini-stat"><span>Okunan ders</span><b>${readAll} / ${total}</b></div><div class="mini-stat"><span>Öğrenilen soru</span><b>${learned} / ${qs.length}</b></div></div>
         <div class="btn-row"><a class="btn btn-primary" href="#/">▶ Derse dön</a><a class="btn" href="#/sorular">Hocanın soruları</a><a class="btn" href="#/lab">Laboratuvar araçları</a></div></section>
@@ -309,8 +314,7 @@
     const p = chapterProgress(ch);
     const firstUnread = ch.lessons.find((l) => !isRead(ch, l)) || ch.lessons[0];
     const qn = questionsFor(ch.id);
-    return `<div class="page"><div class="page-inner">
-      <nav class="l-crumbs"><a href="#/plan">Genel bakış</a> › Bölüm ${ch.num}</nav>
+    return `<div class="page">${pageTop(`<a href="#/plan">Bölümler</a> › <b>Bölüm ${ch.num}</b>`)}<div class="page-inner">
       <section class="card l-chhead"><span class="tag">Bölüm ${ch.num} · ${ch.week} · ${ch.source}</span>
         <h2>${ch.title}</h2>${progressBar(p.pct)}
         <p class="muted">${p.read}/${p.total} ders tamamlandı · yaklaşık ${ch.lessons.reduce((s, l) => s + l.minutes, 0)} dakika</p>
@@ -416,7 +420,8 @@
 
   function pageFeed(ch, l) {
     const ctx = { ch, l, key: lessonKey(ch, l), idx: ch.lessons.indexOf(l), cards: buildCards(ch, l), next: nextOf(ch, l) };
-    const caption = `<div class="fx-caption"><span>${ch.title} › <b>${l.title}</b></span><span class="fx-count" id="fx-count"></span></div>`;
+    const stages = l.intro || l.review ? '' : '<span class="fx-stages" id="fx-stages"><i data-s="read">Oku</i><i data-s="recall">Hatırla</i><i data-s="check">Yokla</i></span>';
+    const caption = `<div class="fx-caption"><span><a href="#/b/${ch.id}">${ch.title}</a> › <b>${l.title}</b></span>${stages}<span class="fx-count" id="fx-count"></span></div>`;
     return `<div class="fx">${renderTop(l, caption)}
       <div class="fx-scroll" id="fx-scroll">${ctx.cards.map((c, i) => renderCard(c, i, ctx)).join('')}</div>
       <div class="fx-nav" id="fx-nav"><button class="btn fx-up" type="button" data-act="card-prev" aria-label="Önceki kart">↑</button><button class="btn btn-primary fx-down" type="button" data-act="card-next">Devam ↓</button></div></div>`;
@@ -431,6 +436,13 @@
   function refreshFeedUi() {
     root.querySelector('#fx-count').textContent = `${F.idx + 1} / ${lastCard(F.ch, F.l) + 1}`;
     root.querySelector('#fx-nav').classList.toggle('end', F.idx === lastCard(F.ch, F.l));
+    const st = root.querySelector('#fx-stages');
+    if (st) {
+      const k = buildCards(F.ch, F.l)[F.idx].kind;
+      const cur = k === 'recall' ? 'recall' : k === 'check' || k === 'end' ? 'check' : 'read';
+      const order = ['read', 'recall', 'check'];
+      st.querySelectorAll('i').forEach((el) => { el.className = el.dataset.s === cur ? 'on' : order.indexOf(el.dataset.s) < order.indexOf(cur) ? 'done' : ''; });
+    }
     const seg = root.querySelector('.fx-seg.active');
     if (seg) { seg.querySelector('i').style.width = `${lessonFill(F.ch, F.l)}%`; seg.classList.toggle('read', isRead(F.ch, F.l)); }
     root.querySelector('#fx-pct').textContent = `%${overallPct()}`;
@@ -515,7 +527,7 @@
   }
 
   /* ------------------------------------------------------------ hocanın soruları */
-  const Q = { mode: 'list', filter: 'all', ch: 'all', current: null, lastShown: null };
+  const Q = { mode: 'card', filter: 'all', ch: 'all', current: null, lastShown: null };
 
   function qCard(q, n) {
     const st = qState(q.id);
@@ -560,14 +572,13 @@
       body = `<div class="tabs">${filters.map(([k, t]) => `<button type="button" class="tab${String(Q.filter) === k ? ' active' : ''}" data-filter="${k}">${t} (${k === 'all' ? qs.length : c[k]})</button>`).join('')}</div>
         ${list.length ? list.map((q) => qCard(q, all.indexOf(q) + 1)).join('') : '<p class="empty">Bu filtrede soru yok.</p>'}`;
     }
-    return `<div class="page"><div class="page-inner">
-      <nav class="l-crumbs"><a href="#/">Başlangıç</a> › Hocanın soruları</nav>
+    return `<div class="page">${pageTop('<b>Hocanın soruları</b>')}<div class="page-inner">
       <section class="card l-chhead"><span class="tag">Sınavda çıkabilir · ${all.length} soru</span><h2>Hocanın ve föylerin soruları</h2>
         <p>Slaytlardaki "Konu özeti / Sorular", örnek sorular, "Problemi bulun" soruları ve deney föylerinin soru ve ön çalışma bölümleri. Önce <b>kendi cevabını yaz</b>, sonra model cevabı aç ve <b>anahtar noktaları</b> işaretle. "(Ek)" işaretli bilgiler slaytta yok, veri sayfasından eklendi.</p>
         <div class="qx-stats">${BOX.map((bx) => `<div class="mini-stat ${bx.cls}"><span>${bx.label}</span><b>${c[bx.id]}</b></div>`).join('')}</div>
         <div class="l-bar l-bar-stack">${BOX.slice(1).reverse().map((bx) => `<i class="${bx.cls}" style="width:${qs.length ? (c[bx.id] / qs.length) * 100 : 0}%"></i>`).join('')}</div>
         <div class="tabs" style="margin-top:12px"><button class="tab${Q.ch === 'all' ? ' active' : ''}" type="button" data-qch="all">Tüm bölümler</button>${chapters().map((ch) => `<button class="tab${Q.ch === ch.id ? ' active' : ''}" type="button" data-qch="${ch.id}">B${ch.num} · ${ch.short || ch.title}</button>`).join('')}</div>
-        <div class="btn-row"><button class="btn btn-sm${Q.mode === 'list' ? ' on' : ''}" type="button" data-mode="list">≡ Liste</button><button class="btn btn-sm${Q.mode === 'card' ? ' on' : ''}" type="button" data-mode="card">⟳ Kart modu (karışık aralıklı tekrar)</button></div>
+        <div class="btn-row"><button class="btn btn-sm${Q.mode === 'card' ? ' on' : ''}" type="button" data-mode="card">⟳ Tek tek çalış (önerilen)</button><button class="btn btn-sm${Q.mode === 'list' ? ' on' : ''}" type="button" data-mode="list">≡ Tüm liste</button></div>
       </section><div class="qx-body">${body}</div></div></div>`;
   }
 
@@ -662,6 +673,7 @@
     if (!p0) html = pageHome();
     else if (p0 === 'plan') html = pageOverview();
     else if (p0 === 'sorular') {
+      if (p1) { Q.mode = 'list'; Q.filter = 'all'; Q.ch = 'all'; }
       html = pageQuestions();
       if (p1) after = () => { const el = root.querySelector(`#q-${CSS.escape(p1)}`); if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash-card'); } };
     } else if (p0 === 'b') {

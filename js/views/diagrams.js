@@ -212,7 +212,7 @@
         const r = lookup(a);
         if (!r) { o.innerHTML = `<b>${MC.hexH(a)}</b>: Bank 1'de F0h–FFh → 70h–7Fh ortak alanına yansır.`; return; }
         const cell = el.querySelector(`td[data-a="${r.kind === 'gpr' && r.off >= 0x20 ? (r.bank === 1 ? 160 : r.off >= 0x70 ? 112 : 32) : a}"]`);
-        if (cell) { cell.classList.add('hit'); cell.scrollIntoView({ block: 'nearest' }); }
+        if (cell) { cell.classList.add('hit'); const wrap = cell.closest('.table-wrap'); wrap.scrollTop = Math.max(0, cell.offsetTop - wrap.clientHeight / 2); } // yalnızca tablo kayar, sayfa değil
         o.innerHTML = `<b>${MC.hexH(a)}</b> = Bank <b>${r.bank}</b> (RP1:RP0 = ${MC.bin(r.bank, 2)}), bank içi ofset ${MC.hexH(r.off)} (komuttaki 7 bit) → ${r.name}. ${r.ok ? '<span class="dg-ok">Buraya değişken tanımlanabilir.</span>' : '<span class="dg-bad">Buraya değişken tanımlanamaz.</span>'}`;
       };
       inp.addEventListener('input', draw);
